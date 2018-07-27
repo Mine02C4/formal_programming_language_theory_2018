@@ -333,6 +333,7 @@ public static final String
   "presr", // Scalar replacement based on Partial Redundancy Elimination.
   "divex3",// Similar to divex but used when SSA scalar replacement is requested.
   "printflow", // PrintFlow
+  "peephole", // peep-hole
 }; // LIR_OPT
 //##96 END
 

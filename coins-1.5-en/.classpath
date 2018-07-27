@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry excluding="infra/" kind="src" path="doc/COINSdoc.en"/>
-	<classpathentry kind="src" path="doc/COINSdoc.en/infra"/>
-	<classpathentry kind="src" path="examples"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

@@ -153,6 +153,8 @@ public class OptionName{
 	  if(name==REMOVE_LINE_NUM) return BOTH;
 	  if(name==SHOW_LINE_NUM) return BOTH;
 	  if(name==CLEAR_LINE_NUM) return BOTH;
+	  if(name == PRINTFLOW) return NON_SSA;
+	  if(name == PEEPHOLE) return NON_SSA;
 	  return ON_SSA;
   }
   
@@ -182,4 +184,9 @@ public class OptionName{
   public static final String SSA_SSAG_PRUNING="ssa-ssag-pruning";
   /** Debugging mode **/
   public static final String SSA_DEBUG="ssa-debug";
+  
+  /** Print flow **/
+  public static final String PRINTFLOW = "printflow";
+  /** peep-hole **/
+  public static final String PEEPHOLE = "peephole";
 }

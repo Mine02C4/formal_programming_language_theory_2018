@@ -373,6 +373,12 @@ public class LirOptDriver  implements LocalTransformer{
 	      lt=new LirNumbering(f,LirNumbering.CLEAR_LINE_NUMBER);
 	    }
 	    // End(2010.3.25)
+	    else if(name.equals(OptionName.PRINTFLOW)){
+	      lt=new PrintFlow(env, sstab);
+	    }
+	    else if(name.equals(OptionName.PEEPHOLE)){
+	      lt=new PeepHole(env, sstab);
+	    }
 	    else{
 	      System.err.println("LirOptDriver.java : unexpected optimizer name "+name);
 	    }

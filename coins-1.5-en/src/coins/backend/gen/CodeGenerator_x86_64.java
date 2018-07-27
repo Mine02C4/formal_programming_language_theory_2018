@@ -1035,28 +1035,28 @@ import coins.backend.util.Misc;
 import java.io.PrintWriter;
 
 // imports here
-
-
-import coins.backend.sym.Label;
-import coins.backend.Storage;
-import coins.backend.Data;
-import coins.backend.LocalTransformer;
-import coins.backend.Transformer;
-import coins.backend.ana.SaveRegisters;
-import coins.backend.util.NumberSet;
-import coins.backend.util.BitMapSet;
-import coins.backend.util.QuotedString;
-import coins.backend.lir.LirLabelRef;
-import coins.sym.*;
-import coins.ir.IrList;
-import java.io.*;
-import java.util.List;
-import java.util.ArrayList;
-
-import coins.IoRoot;
-import coins.SymRoot;
-import coins.driver.CompileThread;
-
+
+
+import coins.backend.sym.Label;
+import coins.backend.Storage;
+import coins.backend.Data;
+import coins.backend.LocalTransformer;
+import coins.backend.Transformer;
+import coins.backend.ana.SaveRegisters;
+import coins.backend.util.NumberSet;
+import coins.backend.util.BitMapSet;
+import coins.backend.util.QuotedString;
+import coins.backend.lir.LirLabelRef;
+import coins.sym.*;
+import coins.ir.IrList;
+import java.io.*;
+import java.util.List;
+import java.util.ArrayList;
+
+import coins.IoRoot;
+import coins.SymRoot;
+import coins.driver.CompileThread;
+
 
 
 
@@ -2827,8 +2827,8 @@ public class CodeGenerator_x86_64 extends CodeGenerator {
     }
 
     // State methods here
-    
-    
+    
+    
   }
 
 
@@ -3445,1784 +3445,1784 @@ public class CodeGenerator_x86_64 extends CodeGenerator {
   }
 
   // CodeGenerator methods here
-  
-  private boolean isOverlappedReg(LirNode node1, LirNode node2){
-     if ((node1.opCode != Op.REG) && (node1.opCode != Op.SUBREG))
-       return false;
-     if ((node2.opCode != Op.REG) && (node2.opCode != Op.SUBREG))
-       return false;
-     return machineParams.isOverlapped(node1, node2);
-  }
-  
-  private boolean isPower2(LirNode node){
-    if (node instanceof LirIconst){
-      long value = ((LirIconst)node).signedValue();
-      return (value & (value - 1)) == 0;
-    }
-    return false;
-  }
-  
-  private boolean isSmallConst(LirNode node1, LirNode node2){
-    return isSmallConst(node1) || isSmallConst(node2);
-  }
-  
-  private boolean isSmallConst(LirNode node){
-    if (node instanceof LirIconst){
-      long value = ((LirIconst)node).signedValue();
-      return (2 <= value) && (value <= 10);
-    }
-    return false;
-  }
-  
-  private boolean is32bitConstOrNotConst(LirNode node) {
-    if (node instanceof LirIconst) {
-      long value = ((LirIconst)node).signedValue();
-      return (-2147483648 <= value) && (value <= 2147483647);
-    }
-    return true;
-  }
-  
-  private boolean isConstAndNotIn32bit(LirNode node) {
-    if (node instanceof LirIconst) {
-      long value = ((LirIconst)node).signedValue();
-      return (-2147483648 > value) || (value > 2147483647);
-    }
-    return false;
-  }
-  
-  private boolean conventionIsNotMac() {
-    return convention != "mac";
-  }
-  
-  private boolean conventionIsMac() {
-    return convention == "mac";
-  }
-  
-  private boolean isX(LirNode node) {
-      SymStatic sym = (SymStatic)((LirSymRef) node).symbol;
-      return sym.linkage == "XREF";
-  }
-  
-  ImList regCallClobbers = new ImList(ImList.list("REG","I64","%rax"), new ImList(ImList.list("REG","I64","%rcx"), new ImList(ImList.list("REG","I64","%rdx"), new ImList(ImList.list("REG","I64","%rsi"), new ImList(ImList.list("REG","I64","%rdi"), new ImList(ImList.list("REG","I64","%r8"), new ImList(ImList.list("REG","I64","%r9"), new ImList(ImList.list("REG","I64","%r10"), new ImList(ImList.list("REG","I64","%r11"), new ImList(ImList.list("REG","F64","%xmm0"), new ImList(ImList.list("REG","F64","%xmm1"), new ImList(ImList.list("REG","F64","%xmm2"), new ImList(ImList.list("REG","F64","%xmm3"), new ImList(ImList.list("REG","F64","%xmm4"), new ImList(ImList.list("REG","F64","%xmm5"), new ImList(ImList.list("REG","F64","%xmm6"), new ImList(ImList.list("REG","F64","%xmm7"), new ImList(ImList.list("REG","F64","%xmm8"), new ImList(ImList.list("REG","F64","%xmm9"), new ImList(ImList.list("REG","F64","%xmm10"), ImList.list(ImList.list("REG","F64","%xmm11"),ImList.list("REG","F64","%xmm12"),ImList.list("REG","F64","%xmm13"),ImList.list("REG","F64","%xmm14"),ImList.list("REG","F64","%xmm15"))))))))))))))))))))));
-  
-  
-  /** X86_64's function attribute **/
-  static class X86_64Attr extends FunctionAttr {
-  
-    /** Maximum stack space used by call. **/
-    int stackRequired;
-  
-    /** alloca called in it **/
-    boolean allocaCalled;
-    boolean varArgFunction;
-    LirNode lastArg0;  // last arg of prologue
-    LirNode lastArg;  // last arg of va_start
-  
-    boolean rbpUsed;
-    int numberOfCALLs;
-    int stackParams;
-    int paramIcount; 
-    int paramFcount;
-  
-    boolean isRecursive;
-  
-    X86_64Attr(Function func) {
-      super(func);
-      stackRequired = 0;
-      allocaCalled = false;
-      varArgFunction = false;
-      stackParams = 0;
-      isRecursive = false;
-    }
-  }
-  
-  FunctionAttr newFunctionAttr(Function func) {
-    return new X86_64Attr(func);
-  }
-  
-  
-  /** Set alloca called. **/
-  void setAllocaCalled() {
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    attr.allocaCalled = true;
-  }
-  
-  LirNode setVaStartCalled(LirNode callNode) {
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    attr.varArgFunction = true;
-    attr.lastArg = callNode.kid(1).kid(1);
-    checkLastArg(attr);
-    func.localSymtab.addSymbol("__argSaveArea", Storage.FRAME, Type.AGGREGATE, 
-                               16, -176, null);
-    return callNode;
-  }
-  
-  void checkLastArg(X86_64Attr attr) {
-    if (attr.lastArg != attr.lastArg0)
-      ; //warning: second parameter of 'va_start' not last named argument
-  }
-  
-  LirNode setVaStartCalledLate(LirNode callNode, BiList pre) {
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    LirNode va_list = callNode.kid(1).kid(0);
-    LirNode bpreg = regnode(I64, "%rbp");
-    LirNode int_address = lir.node(Op.MEM, I64, lir.node
-                          (Op.ADD, I64, va_list, lir.iconst(I64, 16)));
-    LirNode stack_address = lir.node(Op.MEM, I64, lir.node
-                          (Op.ADD, I64, va_list, lir.iconst(I64, 8)));
-    LirNode int_offset = lir.node(Op.MEM, I32, va_list);
-    LirNode float_offset = lir.node(Op.MEM, I32, lir.node
-                          (Op.ADD, I64, va_list, lir.iconst(I64, 4)));
-    pre.add(lir.node(Op.SET, I64, int_address, lir.node
-                       (Op.SUB, I64, bpreg, lir.iconst(I64, 176))));
-    pre.add(lir.node(Op.SET, I64, stack_address, lir.node
-                       (Op.ADD, I64, bpreg, lir.iconst(I64, 16))));
-    pre.add(lir.node(Op.SET, I32, int_offset, lir.iconst(I32, attr.paramIcount * 8)));
-    return lir.node(Op.SET, I32, float_offset, lir.iconst(I32, attr.paramFcount * 16 + 48));
-  }
-  
-  LirNode rewriteVaArg(LirNode node, BiList pre) {
-    LirNode ret = node.kid(2).kid(0);
-    LirNode lastArg = node.kid(1).kid(1);
-    LirNode va_list = node.kid(1).kid(0);
-    LirNode int_address = lir.node(Op.MEM, I64, lir.node
-                          (Op.ADD, I64, va_list, lir.iconst(I64, 16)));
-    LirNode stack_address = lir.node(Op.MEM, I64, lir.node
-                          (Op.ADD, I64, va_list, lir.iconst(I64, 8)));
-    LirNode int_offset = lir.node(Op.MEM, I32, va_list);
-    LirNode float_offset = lir.node(Op.MEM, I32, lir.node
-                          (Op.ADD, I64, va_list, lir.iconst(I64, 4)));
-    LirNode tmp32 = func.newTemp(int_offset.type);
-    LirNode tmp64 = func.newTemp(int_address.type);
-    Label trueLabel = new Label(".Lva"+lir.getLabelVariant());
-    Label falseLabel = new Label(".Lva"+lir.getLabelVariant());
-    Label joinLabel = new Label(".Lva"+lir.getLabelVariant());
-    switch (Type.tag(lastArg.type)) {
-        case Type.INT:
-           pre.add(lir.node
-                   (Op.JUMPC, I64, lir.node
-                    (Op.TSTLTS, I32, int_offset, lir.iconst(I32, 48)),
-                     lir.labelRef(trueLabel), lir.labelRef(falseLabel)));
-           pre.add(lir.node
-                   (Op.DEFLABEL, I64, lir.labelRef(trueLabel)));
-           pre.add(lir.node
-                   (Op.SET, I64, tmp64, lir.node
-                    (Op.ADD, I64, int_address, int_offset.makeCopy(lir))));
-           pre.add(lir.node
-                   (Op.SET, I32, int_offset.makeCopy(lir), lir.node
-                    (Op.ADD, I32, int_offset.makeCopy(lir), lir.iconst(I32, 8))));
-           pre.add(lir.node
-                   (Op.JUMP, I64, lir.labelRef(joinLabel)));
-           pre.add(lir.node
-                   (Op.DEFLABEL, I64, lir.labelRef(falseLabel)));
-           pre.add(lir.node
-                   (Op.SET, I64, tmp64, stack_address));
-           pre.add(lir.node
-                   (Op.SET, I64, stack_address.makeCopy(lir), lir.node
-                    (Op.ADD, I64, tmp64, lir.iconst(I64, 8))));
-           pre.add(lir.node
-                   (Op.JUMP, I64, lir.labelRef(joinLabel)));
-           pre.add(lir.node
-                   (Op.DEFLABEL, I64, lir.labelRef(joinLabel)));
-           func.touch();
-           return lir.node(Op.SET, ret.type, ret, tmp64);
-        case Type.FLOAT:
-           pre.add(lir.node
-                   (Op.JUMPC, I64, lir.node
-                    (Op.TSTLTS, I32, float_offset, lir.iconst(I32, 176)),
-                     lir.labelRef(trueLabel), lir.labelRef(falseLabel)));
-           pre.add(lir.node
-                   (Op.DEFLABEL, I64, lir.labelRef(trueLabel)));
-           pre.add(lir.node
-          		   (Op.SET, I32, tmp32, float_offset.makeCopy(lir)));
-           pre.add(lir.node
-                   (Op.SET, I64, tmp64, lir.node
-                    (Op.ADD, I64, int_address, tmp32)));
-           pre.add(lir.node
-                   (Op.SET, I32, float_offset.makeCopy(lir), lir.node
-                    (Op.ADD, I32, tmp32, lir.iconst(I32, 16))));
-           pre.add(lir.node
-                   (Op.JUMP, I64, lir.labelRef(joinLabel)));
-           pre.add(lir.node
-                   (Op.DEFLABEL, I64, lir.labelRef(falseLabel)));
-           pre.add(lir.node
-                   (Op.SET, I64, tmp64, stack_address.makeCopy(lir)));
-           pre.add(lir.node
-                   (Op.SET, I64, stack_address.makeCopy(lir), lir.node
-                    (Op.ADD, I64, tmp64, lir.iconst(I64, 8))));
-           pre.add(lir.node
-                   (Op.JUMP, I64, lir.labelRef(joinLabel)));
-           pre.add(lir.node
-                   (Op.DEFLABEL, I64, lir.labelRef(joinLabel)));
-           func.touch();
-           return lir.node(Op.SET, ret.type, ret, tmp64);
-       default: //return null;
-           throw new CantHappenException("Unsupported type in va_list");
-    }
-  }
-  
-  void setFuncAttr(int numberOfCALLs, int maxStackOffset){
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    attr.numberOfCALLs = numberOfCALLs;
-    attr.stackRequired = maxStackOffset;
-  }
-  
-  void setStackParams(int stackParams) {
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    attr.stackParams = stackParams;
-  }
-  
-  void setParamCount(int paramIcount, int paramFcount, LirNode lastArg) {
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    attr.paramIcount = paramIcount;
-    attr.paramFcount = paramFcount;
-    attr.lastArg0 = lastArg;
-  }
-  
-  
-  LirNode stripConv(LirNode tree) {
-    switch (tree.opCode) {
-    case Op.CONVSX: case Op.CONVZX:
-      return tree.kid(0);
-    default:
-      return tree;
-    }
-  }
-  
-  
-  /** Rewrite FRAME node to target machine form. **/
-  LirNode rewriteFrame(LirNode node) {
-    Symbol rbp = func.getSymbol("%rbp");
-    int off = ((SymAuto)((LirSymRef)node).symbol).offset();
-    return lir.node
-      (Op.ADD, node.type, lir.symRef(rbp), lir.iconst(I64, (long)off));
-  }
-  
-  
-  /** Return early time pre-rewriting sequence. **/
-  public Transformer[] earlyRewritingSequence() {
-    return new Transformer[] {
-      localEarlyRewritingTrig
-    };
-  }
-  
-  
-  /** Return late time pre-rewriting sequence. **/
-  public Transformer[] lateRewritingSequence() {
-    return new Transformer[] {
-  //    AggregatePropagation.trig,
-      localLateRewritingTrig,
-      TailRecursionTrig,
-      ProcessFramesTrig
-    };
-  }
-  
-   final LocalTransformer TailRecursionTrig = new LocalTransformer() {
-        public boolean doIt(Function f, ImList args) {
-          func = f;
-          lir = f.newLir;
-          tailRecursion();
-          return true;
-        }
-  
-        public boolean doIt(Data data, ImList args) { return true; }
-        
-        public String name() { return "TailRecursion"; }
-  
-        public String subject() { return "Tail Recursion Elimination"; }
-   };
-  
-  private void tailRecursion() {
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    if ( ! attr.isRecursive )  return;
-    Label funcBeginLabel = new Label(func.symbol.name + "_begin");
-    List selfVoidCalls = new ArrayList();
-    List afterCalls = new ArrayList();
-    LirNode currentDefLabel = null;
-    BiList bl = func.lirList();
-    for (BiLink bp = bl.first(); !bp.atEnd(); bp = bp.next()) {
-      LirNode nextNode = (LirNode)bp.elem();
-      switch (nextNode.opCode) {
-      case Op.PROLOGUE:
-          bp.addAfter(lir.node(Op.DEFLABEL, I64, lir.labelRef(funcBeginLabel)));
-          break;
-      case Op.PARALLEL: 
-        // check (PARALLEL (CALL self)) (SET functionvalue) (SET returnvalue functionvalue) (JUMP)
-        //  or  (PARALLEL (CALL self)) (JUMP to EPILOGUE)
-          LirNode callNode = (LirNode)nextNode.kid(0);
-          if (callNode.opCode != Op.CALL) break;
-          if ( ! (callNode.kid(0) instanceof LirSymRef) ) break;
-          LirSymRef calledFunc = (LirSymRef)callNode.kid(0);
-          if (calledFunc.symbol.name != func.symbol.name) break;
-          LirNode nextNode1 = (LirNode)bp.next().elem();
-          if (nextNode1.opCode == Op.SET) {
-            LirNode leftSym = (LirNode)nextNode1.kid(0);
-            if ( ! (leftSym instanceof LirSymRef) ) break;
-            if ( ((LirSymRef)leftSym).symbol.name.indexOf("functionvalue") < 0 ) break;
-            nextNode1 = (LirNode)bp.next().next().elem();
-            if (nextNode1.opCode != Op.SET) break;
-            leftSym = (LirNode)nextNode1.kid(0);
-            if ( ! (leftSym instanceof LirSymRef) ) break;
-            if ( ((LirSymRef)leftSym).symbol.name.indexOf("returnvalue") < 0 ) break;
-            leftSym = (LirNode)nextNode1.kid(1); // rightSym
-            if ( ! (leftSym instanceof LirSymRef) ) break;
-            if ( ((LirSymRef)leftSym).symbol.name.indexOf("functionvalue") < 0 ) break;
-            nextNode1 = (LirNode)bp.next().next().next().elem();
-            if ( ! nextNode1.isBranch() ) break;
-            BiLink bp1, bp2, bp3, bp4;
-            bp1 = bp; bp2 = bp1.next(); bp3 = bp2.next(); bp4 = bp3.next();
-            bp.addBefore(lir.node(Op.JUMP, I64, lir.labelRef(funcBeginLabel)));
-            bp = bp.prev();
-            bp1.unlink(); bp2.unlink(); bp3.unlink(); bp4.unlink();
-            func.touch();
-            break;
-          } else if (nextNode1.opCode == Op.JUMP) {
-            selfVoidCalls.add(bp);
-            afterCalls.add((LirLabelRef)nextNode1.kid(0));
-          }
-          break;
-      case Op.DEFLABEL:
-          currentDefLabel = nextNode;
-          break;
-      case Op.EPILOGUE:
-          LirLabelRef currentLabel = (LirLabelRef)currentDefLabel.kid(0);
-          for (int i = 0; i < selfVoidCalls.size(); i++) {
-             if ((LirLabelRef)afterCalls.get(i) == currentLabel) {
-                BiLink tp1 = (BiLink)selfVoidCalls.get(i);
-                BiLink tp2 = tp1.next();
-                tp1.addBefore(lir.node(Op.JUMP, I64, lir.labelRef(funcBeginLabel)));
-                tp1.unlink(); tp2.unlink();
-                func.touch();
-             }
-          }
-          break;
-      default: break;
-      }
-    }
-  }
-  
-  LirNode rewriteDIVMODby1(LirNode node, BiList pre, int opCode){
-    LirNode src2 = node.kid(1);
-    if (!(src2 instanceof LirIconst))
-      return node;
-    long src2Value = ((LirIconst)src2).signedValue();
-    if (src2Value == 1){
-      switch (opCode){
-      case Op.DIVS:
-      case Op.DIVU:
-        return node.kid(0);
-      case Op.MODS: 
-      case Op.MODU:
-        return lir.iconst(node.type, 0);
-      }
-    }
-    return node;
-  }
-  
-  LirNode rewriteDIVMOD(LirNode node, BiList pre, int opCode){
-    LirNode src2 = node.kid(1);
-    LirNode dst;
-    if (isPower2(src2)){
-      dst = rewriteDIVMODtoShift(node, pre, opCode);
-      if (dst != null)
-        return dst;
-    }
-    LirNode src1 = node.kid(0);
-    LirNode areg = regnode(src1.type, (src1.type == I32 ? "%eax" : "%rax"));
-    if (src1.equals(areg))
-      return node;
-    dst = func.newTemp(node.type);
-    pre.add(lir.node(Op.SET, src1.type, areg, src1));
-    pre.add(lir.node
-             (Op.SET, dst.type, dst, lir.node
-               (opCode, src1.type, areg, src2)));
-    return dst;
-  }
-  
-  LirNode rewriteDIVMODtoShift(LirNode node, BiList pre, int opCode){
-    LirNode src1 = node.kid(0);
-    LirNode src2 = node.kid(1);
-    int typeBits = Type.bits(src1.type);
-    LirNode dst, temp;
-    long src2Value = ((LirIconst)src2).signedValue();
-    int k; long j = src2Value;
-    for (k = 0; (j >>= 1) > 0; k++)
-         ;
-    if (k >= typeBits)
-      return null; 
-    if (k != 0 && src1.opCode != Op.REG){
-        src1 = func.newTemp(src1.type);
-        pre.add(lir.node(Op.SET, src1.type, src1, node.kid(0)));
-    }
-  
-    switch (opCode){
-    case Op.DIVS:
-  //    if (k == 0)
-  //      return src1;
-      dst = func.newTemp(node.type);
-      temp = func.newTemp(node.type);
-      if (k == 1)
-        pre.add(lir.node
-                (Op.SET, temp.type, temp, lir.node
-                 (Op.RSHU, src1.type, src1, lir.iconst(src2.type, typeBits - 1))));
-      else
-        pre.add(lir.node
-                (Op.SET, temp.type, temp, lir.node
-                 (Op.RSHU, src1.type, lir.node
-                  (Op.RSHS, src1.type, src1, lir.iconst(src2.type, k-1)),
-                  lir.iconst(src2.type, typeBits - k)))); 
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-               (Op.RSHS, temp.type, lir.node
-                (Op.ADD, temp.type, temp, src1),
-                lir.iconst(src2.type, k))));
-      return dst;
-    case Op.MODS:
-  //    if (k == 0) 
-  //      return lir.iconst(node.type, 0);
-      dst = func.newTemp(node.type);
-      temp = func.newTemp(node.type);
-      if (k == 1)
-        pre.add(lir.node
-                (Op.SET, temp.type, temp, lir.node
-                 (Op.RSHU, src1.type, src1, lir.iconst(src2.type, typeBits - 1))));
-      else
-        pre.add(lir.node
-                (Op.SET, temp.type, temp, lir.node
-                 (Op.RSHU, src1.type, lir.node
-                  (Op.RSHS, src1.type, src1, lir.iconst(src2.type, k-1)),
-                  lir.iconst(src2.type, typeBits - k)))); 
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-               (Op.SUB, src1.type, src1, lir.node
-                (Op.BAND, temp.type, lir.node
-                 (Op.ADD, temp.type, temp, src1),
-                 lir.iconst(src2.type, - src2Value)))));
-      return dst;
-    case Op.DIVU:
-  //    if (k == 0)
-  //      return src1;
-      return lir.node(Op.RSHU, src1.type, src1, lir.iconst(src2.type, k));
-    case Op.MODU:
-  //    if (k == 0) 
-  //      return lir.iconst(node.type, 0);
-      return lir.node(Op.BAND, src1.type, src1, 
-                               lir.iconst(src2.type, src2Value - 1));
-    default: return node; // for javac check
-    }
-  }
-  
-  LirNode rewriteMULtoShift(LirNode node, BiList pre){
-    LirNode src1 = node.kid(0);
-    LirNode src2 = node.kid(1);
-    if (isSmallConst(src1)) {
-       src1 = src2;
-       src2 = node.kid(0);
-    }
-    if (src1.opCode != Op.REG) {
-      LirNode src1temp = func.newTemp(src1.type);
-      pre.add(lir.node(Op.SET, src1temp.type, src1temp, src1));
-      src1 = src1temp;
-    }
-    LirNode dst = func.newTemp(node.type);
-    int src2Value = (int)((LirIconst)src2).signedValue();
-    switch (src2Value) {
-    case 2:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 1))));
-      break;
-    case 3:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-               (Op.ADD, src1.type, src1, lir.node
-                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 1)))));
-      break;
-    case 4:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 2))));
-      break;
-    case 5:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-               (Op.ADD, src1.type, src1, lir.node
-                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 2)))));
-      break;
-    case 6:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-               (Op.LSHS, src1.type, lir.node
-                (Op.ADD, src1.type, src1, lir.node
-                 (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 1))),
-                lir.iconst(src2.type, 1))));
-      break;
-    case 7:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-               (Op.SUB, src1.type, lir.node
-                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 3)),
-                src1)));
-      break;
-    case 8:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 3))));
-      break;
-    case 9:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-               (Op.ADD, src1.type, lir.node
-                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 3)),
-                src1)));
-      break;
-    case 10:
-      pre.add(lir.node
-              (Op.SET, dst.type, dst, lir.node
-               (Op.LSHS, src1.type, lir.node
-                (Op.ADD, src1.type, src1, lir.node
-                 (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 2))),
-                lir.iconst(src2.type, 1))));
-      break;
-    default: return null;
-    }
-    return dst;
-  }
-  
-  static final int MAX_I_REGPARAM = 6;
-  static final String[][] IREGPARAM = { {"%rdi", "%edi", "%di", "%dil"},
-                                        {"%rsi", "%esi", "%si", "%sil"},
-                                        {"%rdx", "%edx", "%dx", "%dl"},
-                                        {"%rcx", "%ecx", "%cx", "%cl"},
-                                        {"%r8", "%r8d", "%r8w", "%r8b"},
-                                        {"%r9", "%r9d", "%r9w", "%r9b"} };
-  static final int MAX_F_REGPARAM = 8;
-  
-  static final String[] STORE_F_REG = { "\n\tmovaps\t%xmm7,-16(%rbp)",
-                                        "\n\tmovaps\t%xmm6,-32(%rbp)",
-                                        "\n\tmovaps\t%xmm5,-48(%rbp)",
-                                        "\n\tmovaps\t%xmm4,-64(%rbp)",
-                                        "\n\tmovaps\t%xmm3,-80(%rbp)",
-                                        "\n\tmovaps\t%xmm2,-96(%rbp)",
-                                        "\n\tmovaps\t%xmm1,-112(%rbp)", 
-                                        "\n\tmovaps\t%xmm0,-128(%rbp)",};  
-  static final String[] STORE_I_REG = { "\n\tmovq\t%r9,-136(%rbp)",
-                                        "\n\tmovq\t%r8,-144(%rbp)",
-                                        "\n\tmovq\t%rcx,-152(%rbp)",
-                                        "\n\tmovq\t%rdx,-160(%rbp)",
-                                        "\n\tmovq\t%rsi,-168(%rbp)",
-                                        "\n\tmovq\t%rdi,-176(%rbp)",}; 
-  
-  static final String[][] RETURN_I_REG = { {"%rax", "%eax"},
-                                           {"%rdx", "%edx"} };
-         
-  static final int NO_CLASS = 0;
-  static final int MEMORY = 1;
-  static final int INT_CLASS = 2;
-  static final int SSE = 3;
-  
-  int maxStackOffset = 0;
-  int numberOfCALLs = 0;
-  boolean rbpUsed = true;
-  int[] retAggrClass = null; // classes of returning aggregate 
-  LirNode retAggrAddr = null; // address of returning aggregate
-  
-  SymRoot symRoot = null;
-  
-  SymRoot getSymRoot() {
-    if (symRoot != null)
-      return symRoot;
-    Thread th = Thread.currentThread();
-    IoRoot io = null;
-    if (th instanceof CompileThread)
-      io = ((CompileThread) th).getIoRoot();
-    symRoot = io.symRoot;
-    return symRoot;
-  }
-  
-  /** count number of parameters in PROLOGUE **/
-  LirNode paramCount(LirNode node) {
-    int paramFcount = 0;
-    int paramIcount = 0;
-    int n = node.nKids();
-  
-    for (int i = 1; i < n; i++) {
-      LirNode arg = node.kid(i);
-      switch (Type.tag(arg.type)) {
-        case Type.INT: paramIcount++; break;
-        case Type.FLOAT: paramFcount++; break;
-      }
-    }
-    setParamCount(paramIcount, paramFcount, node.kid(n-1));////
-    return null;
-  }
-  
-  /** Rewrite PROLOGUE **/
-  LirNode rewritePrologue(LirNode node, BiList post) {
-    int location = 16;
-    LirNode base = regnode(I64, "%rbp");
-    int paramFcount = 0;
-    int paramIcount = 0;
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    maxStackOffset = 0;
-    numberOfCALLs = 0;
-  
-    if (func.origEpilogue.nKids() > 1
-        && Type.tag(func.origEpilogue.kid(1).type) == Type.AGGREGATE) {
-      // First parameter may be a pointer to struct returning value.
-      LirNode ret = func.origEpilogue.kid(1);
-      Subp subp = (Subp)getSymRoot().sym.getOriginalSym(func.symbol.name);
-      coins.sym.Type retType = subp.getReturnValueType();
-      retAggrClass = classify(retType);
-      if (retAggrClass[0] == MEMORY) {
-        retAggrAddr = func.newTemp(I64);
-        post.add(lir.node(Op.SET, I64, retAggrAddr,  // store %rdi to retAggrAddr
-                          nthIparam(I64, paramIcount++)));
-      }
-    }
-    
-    int n = node.nKids();
-    for (int i = 1; i < n; i++) {
-      LirNode arg = node.kid(i);
-      
-      if (arg.opCode == Op.MEM) {
-        // set location to symbol table
-        if (arg.kid(0).opCode != Op.FRAME)
-          throw new CantHappenException("Malformed aggregate parameter");
-        SymAuto var = (SymAuto)((LirSymRef)arg.kid(0)).symbol;
-      } //// else 
-        switch (Type.tag(arg.type)) {
-        case Type.INT: 
-          if (paramIcount < MAX_I_REGPARAM) {
-              post.add(lir.node(Op.SET, arg.type, arg,
-                          nthIparam(arg.type, paramIcount++)));
-          } else {
-              post.add(lir.node(Op.SET, arg.type, arg,
-                         stackMem(arg.type, location, base)));
-              location += 8;
-          }
-          break;
-        case Type.FLOAT:
-          if (paramFcount < MAX_F_REGPARAM) {
-             post.add(lir.node(Op.SET, arg.type, arg,
-                          nthFparam(arg.type, paramFcount++)));
-          } else {
-              post.add(lir.node(Op.SET, arg.type, arg,
-                         stackMem(arg.type, location, base)));
-              location += 8;
-          }
-          break;
-        case Type.AGGREGATE:
-          int[] aggrClass = classify(hirType(arg));
-          int i_reg = 0;
-          int f_reg = 0;
-          if (aggrClass[0] == INT_CLASS) i_reg++;
-          if (aggrClass[1] == INT_CLASS) i_reg++;
-          if (aggrClass[0] == SSE) f_reg++;
-          if (aggrClass[1] == SSE) f_reg++;
-          if (aggrClass[0] == MEMORY || (paramIcount + i_reg > MAX_I_REGPARAM)
-                                   || (paramFcount + f_reg > MAX_F_REGPARAM)) {
-            LirNode baseLoc = lir.node(Op.ADD, I64, base, 
-                                  lir.iconst(I64, location + adjustEndian(arg.type)));
-            post.add(lir.node
-  	        (Op.SET, arg.type, arg, lir.operator
-                 (Op.MEM, arg.type, baseLoc, ImList.list("&align", "8"))));
-            location += Type.bytes(arg.type);
-          } else {
-            LirNode newArg;
-            int size;
-            for (int j = 0; j < 2; j++) {
-              if (aggrClass[j] == INT_CLASS) {
-                if (aggrClass[j+2] > 4)
-                   size = I64;
-                else
-                   size = I32;
-                if (j == 0)
-                   newArg = lir.node(Op.MEM, size, arg.kid(0));
-                else
-                   newArg = lir.node(Op.MEM, size, 
-                              lir.node(Op.ADD, I64, arg.kid(0), lir.iconst(I64, 8)));
-                post.add(lir.node
-                       (Op.SET, size, newArg, nthIparam(size, paramIcount++)));
-              }
-              if (aggrClass[j] == SSE) {
-                if (aggrClass[j+2] > 4)
-                   size = F64;
-                else
-                   size = F32;
-                if (j == 0)
-                   newArg = lir.node(Op.MEM, size, arg.kid(0));
-                else
-                   newArg = lir.node(Op.MEM, size, 
-                             lir.node(Op.ADD, I64, arg.kid(0), lir.iconst(I64, 8)));
-                post.add(lir.node
-                     (Op.SET, size, newArg, nthFparam(size, paramFcount++)));
-              } // if
-            } // for
-          } // else
-  
-        } // switch
-    } // for
-    if (location > 16)
-      setStackParams(location - 16);
-  //  setParamCount(paramIcount, paramFcount); // done by early rewriting
-    return lir.node(Op.PROLOGUE, Type.UNKNOWN, node.kid(0));
-  }
-  
-  private LirNode nthIparam(int type, int counter){
-    int rank = 3; // rank = I8
-    if (counter < MAX_I_REGPARAM) {
-       if (type == I32) rank = 1;
-       else if (type == I16) rank = 2;
-       else if (type == I64) rank = 0;
-       return regnode(type, IREGPARAM[counter][rank]);
-    }
-    return null;
-  }
-  
-  private ImList nthIparamReg(int type, int counter){ /// 2013.7.25
-    int rank = 3; // rank = I8
-    String typeString = "I8";
-    if (counter < MAX_I_REGPARAM) {
-       if (type == I32) { rank = 1; typeString = "I32"; }
-       else if (type == I16) { rank = 2; typeString = "I16"; }
-       else if (type == I64) { rank = 0; typeString = "I64"; }
-       return ImList.list("REG", typeString, IREGPARAM[counter][rank]);
-    }
-    return null;
-  }
-  
-  private LirNode nthIret(int type, int counter) {
-    int rank = 0; // rank = I64
-    if (type == I32) rank = 1;
-    return regnode(type, RETURN_I_REG[counter][rank]);
-  }
-  
-  private LirNode nthFparam(int type, int counter){
-    if (counter < MAX_F_REGPARAM) {
-       if (type == F64) //;;;
-          return regnode(type, "%xmm" + counter);
-       return regnode(type, "%xmm" + counter + "s"); //;;;
-    }
-    return null;
-  }
-  
-  private LirNode regnode(int type, String name) {
-    LirNode master = lir.symRef(module.globalSymtab.get(name));
-    switch (Type.tag(type)) {
-    case Type.INT:
-      return master;
-  
-    case Type.FLOAT:
-  //    if (type == F64)   //;;;
-        return master;
-  //    else if (type == F32)  //;;;
-  //      return lir.node  //;;;
-  //        (Op.SUBREG, F32, master, lir.untaggedIconst(I32, 0));  //;;;
-  
-    default:
-      return null;
-    }
-  }
-  
-  
-  private LirNode stackMem(int type, int location, LirNode base) {
-    return lir.node
-      (Op.MEM, type, lir.node
-       (Op.ADD, I64, base,
-        lir.iconst(I64, location + adjustEndian(type))));
-  }
-  
-  private int adjustEndian(int type) { return 0; }
-  
-  
-  /** Return the register for value returned. **/
-  LirNode returnReg(int type) {
-    switch (Type.tag(type)) {
-    case Type.INT:
-      switch (Type.bytes(type)) {
-      case 1: return regnode(type, "%al");
-      case 2: return regnode(type, "%ax");
-      case 4: return regnode(type, "%eax");
-      case 8: return regnode(type, "%rax");
-      default:
-        return null;
-      }
-    case Type.FLOAT:
-      if (type == F64)
-        return regnode(type, "%xmm0");
-      return regnode(type, "%xmm0s");
-    default:
-      return null;
-    }
-  }
-  
-  
-  /** Rewrite EPILOGUE **/
-  LirNode rewriteEpilogue(LirNode node, BiList pre) {
-    setFuncAttr(numberOfCALLs, maxStackOffset);
-    if (node.nKids() < 2)
-      return node;
-  
-    LirNode ret = node.kid(1);
-    LirNode reg = null;
-    switch (Type.tag(ret.type)) {
-    case Type.INT:
-    case Type.FLOAT:
-      reg = returnReg(ret.type);
-      pre.add(lir.node(Op.SET, ret.type, reg, ret));
-      return lir.node(Op.EPILOGUE, Type.UNKNOWN, node.kid(0), reg);
-  
-    case Type.AGGREGATE:
-      if (retAggrClass[0] == MEMORY) {
-        pre.add(lir.node
-               (Op.SET, ret.type, lir.operator
-                 (Op.MEM, ret.type, retAggrAddr,
-                 ImList.list("&align", "8")),
-  	      ret));
-        return lir.node(Op.EPILOGUE, Type.UNKNOWN, new LirNode[]{});
-      }
-      LirNode newArg;
-      int type;
-      int iCounter = 0;
-      int fCounter = 0;
-      for (int j = 0; j < 2; j++) {
-         if (retAggrClass[j] == INT_CLASS) {
-            if (retAggrClass[j+2] > 4)
-               type = I64;
-            else
-               type = I32;
-            if (j == 0)
-               newArg = lir.node(Op.MEM, type, ret.kid(0));
-            else
-               newArg = lir.node(Op.MEM, type, 
-                             lir.node(Op.ADD, I64, ret.kid(0), lir.iconst(I64, 8)));
-            reg = nthIret(type, iCounter++);
-            pre.add(lir.node
-                     (Op.SET, type, reg, newArg));
-            }
-         if (retAggrClass[j] == SSE) {
-            if (retAggrClass[j+2] > 4)
-               type = F64;
-            else
-               type = F32;
-            if (j == 0)
-               newArg = lir.node(Op.MEM, type, ret.kid(0));
-            else
-               newArg = lir.node(Op.MEM, type, 
-                             lir.node(Op.ADD, I64, ret.kid(0), lir.iconst(I64, 8)));
-            reg = nthFparam(type, fCounter++);
-            pre.add(lir.node
-                     (Op.SET, type, reg, newArg));
-         }
-      } // for
-      return lir.node(Op.EPILOGUE, Type.UNKNOWN, node.kid(0), reg);
-    default:
-      throw new CantHappenException();
-    }
-  }
-  
-  
-  boolean isVarArgs(LirNode calledFunc){
-    if ( !(calledFunc instanceof LirSymRef) )
-      return true;
-    String name = ((LirSymRef)calledFunc).symbol.name;
-    if (name == "printf" || name == "scanf" || name == "sscanf" || name == "sprintf")
-       return true;
-    Sym symFunc = getSymRoot().sym.getOriginalSym(name);
-    if ( !(symFunc instanceof Subp))
-      	return true;
-    return ((SubpType)symFunc.getSymType()).hasOptionalParam();
-  }
-  
-  coins.sym.Type hirType(LirNode arg) {
-    if (!(arg.kid(0) instanceof LirSymRef))
-       throw new CantHappenException("unable to get aggregate info (LirSymRef)");
-    LirSymRef lval = (LirSymRef)arg.kid(0);
-    Symbol symbol = func.localSymtab.get(lval.symbol.name);
-    if (symbol == null)
-        symbol = func.module.globalSymtab.get(lval.symbol.name);
-    ImList symbolOpt = symbol.opt();
-    if (symbolOpt == null || symbolOpt == ImList.Empty)
-      	throw new CantHappenException("unable to get aggregate info (symbol.opt())");
-    String aggrName = ((QuotedString)symbol.opt().elem2nd()).body.intern();
-    Sym symAggr = getSymRoot().sym.getOriginalSym(aggrName);
-    coins.sym.Type aggrType = symAggr.getSymType();
-    return aggrType;
-  }
-  
-  int[] classify(coins.sym.Type aggrType) {
-    int[] aggrClass = new int[4];
-    if (aggrType.getSizeValue() > 16) {
-      aggrClass[0] = MEMORY;
-      return aggrClass;
-    }
-    aggrClass[0] = NO_CLASS;
-    aggrClass[1] = NO_CLASS;
-    aggrClass[2] = 0; // real size of 1st 8-byte
-    aggrClass[3] = 0; // real size of 2nd 8-byte
-    int[] index_disp = new int[2];
-    index_disp[0] = 0; //index
-    index_disp[1] = 0; //disp of first elem in index-th 8-byte 
-    IrList elems = null;
-    if ((aggrType instanceof StructType) || (aggrType instanceof UnionType)){
-       if (aggrType instanceof StructType)
-         elems = ((StructType)aggrType).getElemList();
-       else
-         elems = ((UnionType)aggrType).getElemList();
-       java.util.ListIterator it = elems.iterator();
-       while (it.hasNext()){
-          Elem nextSym = (Elem)it.next();
-          int nextSize = (int)nextSym.getSize();
-          int nextDisp = (int)nextSym.evaluateDisp();
-          if (index_disp[0]*8 + nextDisp + nextSize - index_disp[1] > 16) {
-             aggrClass[0] = MEMORY;
-             return aggrClass;
-          }
-          coins.sym.Type nextType = nextSym.getSymType();
-          if (nextType.isScalar()) { 
-             if (isInRegister(aggrClass, index_disp, nextSize, nextDisp, nextType))
-                continue;  // aggrClass and index_disp may be modified
-             else
-                return aggrClass;  // aggrClass[0] must be MEMORY
-          } else {
-             IrList subElems = null;
-             if ((nextType instanceof StructType) || (nextType instanceof UnionType)){
-                if (nextType instanceof StructType)
-                   subElems = ((StructType)nextType).getElemList();
-                else
-                   subElems = ((UnionType)nextType).getElemList();
-                java.util.ListIterator subIt = subElems.iterator();
-                while (subIt.hasNext()){
-                   nextSym = (Elem)subIt.next();
-                   nextSize = (int)nextSym.getSize();
-                   int nextDisp2 = nextDisp + (int)nextSym.evaluateDisp();
-                   nextType = nextSym.getSymType();
-                   if (nextType.isScalar()) { 
-                     if (isInRegister(aggrClass, index_disp, nextSize, nextDisp2, nextType))
-                        continue;  // aggrClass and index_disp may be modified
-                     else
-                        return aggrClass;  // aggrClass[0] must be MEMORY
-                   } else {
-                     System.out.println("unsupported complex aggregate");
-                     aggrClass[0] = MEMORY; return aggrClass;
-                   }
-                }
-             } else if (nextType instanceof VectorType){
-                int count = (int)((VectorType)nextType).getElemCount();
-                nextType = ((VectorType)nextType).getElemType();
-                if (! nextType.isScalar()) {
-                   System.out.println("unsupported complex aggregate");
-                   aggrClass[0] = MEMORY; return aggrClass;
-                }
-                nextSize = (int)nextType.getSizeValue();
-                for (int i = 0; i < count; i++){
-                   if (isInRegister(aggrClass, index_disp, nextSize, 
-                                    nextDisp + i*nextSize, nextType))
-                      continue;  // aggrClass and index_disp may be modified
-                   else
-                      return aggrClass;  // aggrClass[0] must be MEMORY
-                }
-             }
-          }
-       }
-       return aggrClass;
-    } 
-    aggrClass[0] = MEMORY; return aggrClass;
-  }
-  
-  boolean isInRegister(int[] aggrClass, int[] index_disp, 
-                       int nextSize, int nextDisp, coins.sym.Type nextType) {
-    if (!nextType.isBasicType() && nextType.isScalar())
-        nextType = nextType.getFinalOrigin();
-    int i = index_disp[0];
-    int originalDisp = index_disp[1];
-    int nextClass;
-    if (nextType.isInteger()) {
-      nextClass = INT_CLASS;
-    } else {
-      nextClass = SSE;
-    }
-    if (nextDisp + nextSize - originalDisp > 8) {
-      if (i > 0) {
-        aggrClass[0] = MEMORY;
-        return false;
-      } else {
-        index_disp[0] = 1;
-        aggrClass[1] = nextClass;
-        index_disp[1] = nextDisp;
-        aggrClass[3] = nextSize;
-        return true;
-      }
-    } else {
-      if (nextClass == INT_CLASS)
-         aggrClass[i] = INT_CLASS;
-      else // nextClass == SSE
-        if (aggrClass[i] != INT_CLASS)
-           aggrClass[i] = SSE;
-      aggrClass[i+2] = nextDisp + nextSize - originalDisp; // size
-      return true;
-    }
-    
-  }
-  
-  /** Rewrite CALL node. **/
-  LirNode rewriteCall(LirNode node, BiList pre, BiList post) {
-    BiList listPreI = new BiList(); // for evaluation of int register parameter expressions
-    BiList listI = new BiList(); // for passing int register parameters
-    BiList listF = new BiList();  // for float register parameters
-    BiList listM = new BiList();  // for stacked parameters
-    ImList regCallUses = ImList.list();
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    
-    LirNode calledFunc = node.kid(0);
-    if (calledFunc instanceof LirSymRef) {
-       String calledFuncName = ((LirSymRef)calledFunc).symbol.name;
-       if ( calledFuncName == func.symbol.name  && frameIsEmpty(func))
-          attr.isRecursive = true;
-       if ( convention == "mac" && (calledFuncName == "fprintf" || calledFuncName == "fscanf") )
-          throw new CantHappenException("fprintf and fscanf are unsupported in x86_64-mac");
-    }
-    LirNode args = node.kid(1);
-    LirNode ret = null;
-    if (node.kid(2).nKids() > 0)
-      ret = node.kid(2).kid(0);
-    int n = args.nKids();
-    LirNode spreg = regnode(I64, "%rsp");
-  
-    int stackOffset = 0;
-    int paramICounter = 0;
-    int paramFCounter = 0;
-  
-    int[] aggrClass2 = null; //for returning aggregate
-    LirNode retReg = null; ///ret;
-    if (ret != null) {
-      switch (Type.tag(ret.type)) {
-      case Type.INT:
-      case Type.FLOAT:
-        retReg = returnReg(ret.type);
-        break;
-      case Type.AGGREGATE:
-        if (ret.opCode != Op.MEM)
-          throw new CantHappenException();
-        if ( !(calledFunc instanceof LirSymRef) )
-          throw new CantHappenException("unable to get called function's name");
-        Subp subp = (Subp)getSymRoot().sym.getOriginalSym(((LirSymRef)calledFunc).symbol.name);
-        coins.sym.Type retType = subp.getReturnValueType();
-        aggrClass2 = classify(retType);
-        if (aggrClass2[0] == MEMORY) {
-          listI.add(lir.node
-                  (Op.SET, I64, nthIparam(I64, paramICounter++), ret.kid(0)));
-          retReg = returnReg(I64);
-        }
-        break;
-      }
-    }
-  
-    for (int i = 0; i < n; i++) {
-      LirNode arg = args.kid(i);
-      // for convention "mac" and STATIC and "XREF"
-      if (conventionIsMac()) {
-        if (arg.opCode == Op.STATIC && isX(arg)) {
-          if (paramICounter < MAX_I_REGPARAM){
-            ImList regName = nthIparamReg(arg.type, paramICounter);  /// 2013.7.25
-            LirNode temp1 = func.newTemp(arg.type);
-            listPreI.add(lir.node
-                  (Op.SET, arg.type, temp1, lir.node
-                    (Op.MEM, arg.type, arg)));
-            listI.add(lir.node
-                (Op.SET, arg.type, nthIparam(arg.type, paramICounter++), temp1));
-            if (regCallUses.isEmpty())                /// 2013.7.25
-                regCallUses = new ImList(regName);
-            else
-                regCallUses = regCallUses.append( new ImList(regName) );
-          } else {
-            listM.add(lir.node
-                  (Op.SET, arg.type, lir.node
-                   (Op.MEM, arg.type, lir.node
-                    (Op.ADD, I64, spreg, lir.iconst(I64, stackOffset))),
-                   arg));
-            stackOffset += 8;
-          }
-          continue;
-        }
-      }
-      switch (Type.tag(arg.type)) {
-      case Type.INT:
-        if (Type.bits(arg.type) < 32)
-          arg = lir.node(Op.CONVZX, I32, arg);
-        if (paramICounter < MAX_I_REGPARAM) {
-          ImList regName = nthIparamReg(arg.type, paramICounter);  /// 2013.7.25
-          LirNode temp = func.newTemp(arg.type);
-          listPreI.add(lir.node
-                  (Op.SET, arg.type, temp, arg));
-          listI.add(lir.node
-                  (Op.SET, arg.type, nthIparam(arg.type, paramICounter++), temp));
-          if (regCallUses.isEmpty())              /// 2013.7.25
-              regCallUses = new ImList(regName);
-          else
-              regCallUses = regCallUses.append( new ImList(regName) );
-        } else {
-          listM.add(lir.node
-                  (Op.SET, arg.type, lir.node
-                   (Op.MEM, arg.type, lir.node
-                    (Op.ADD, I64, spreg, lir.iconst(I64, stackOffset))),
-                   arg));
-          stackOffset += 8;
-        }
-        break;
-      case Type.FLOAT:
-        if (paramFCounter < MAX_F_REGPARAM) {
-          if (regCallUses.isEmpty())
-              regCallUses = new ImList(ImList.list("REG", "F64", "%xmm" + paramFCounter));
-          else
-              regCallUses = regCallUses.append(
-                             new ImList(ImList.list("REG", "F64", "%xmm" + paramFCounter)));
-          listF.add(lir.node
-                 (Op.SET, arg.type, nthFparam(arg.type, paramFCounter++), arg));
-        } else {
-          listM.add(lir.node
-                  (Op.SET, arg.type, lir.node
-                   (Op.MEM, arg.type, lir.node
-                    (Op.ADD, I64, spreg, lir.iconst(I64, stackOffset))),
-                   arg));
-          stackOffset += 8;
-        }
-        break;
-      case Type.AGGREGATE: 
-        int[] aggrClass = classify(hirType(arg));
-        int i_reg = 0;
-        int f_reg = 0;
-        if (aggrClass[0] == INT_CLASS) i_reg++;
-        if (aggrClass[1] == INT_CLASS) i_reg++;
-        if (aggrClass[0] == SSE) f_reg++;
-        if (aggrClass[1] == SSE) f_reg++;
-        if (aggrClass[0] == MEMORY || (paramICounter + i_reg > MAX_I_REGPARAM)
-                                   || (paramFCounter + f_reg > MAX_F_REGPARAM)) {
-          listM.add(lir.node
-  	       (Op.SET, arg.type, lir.operator
-                 (Op.MEM, arg.type, spreg, ImList.list("&align", "8")), arg));
-          stackOffset += Type.bytes(arg.type);
-        } else { 
-          LirNode newArg;
-          int size;
-          for (int j = 0; j < 2; j++) {
-            if (aggrClass[j] == INT_CLASS) {
-              if (aggrClass[j+2] > 4)
-                 size = I64;
-              else
-                 size = I32;
-              if (j == 0)
-                 newArg = lir.node(Op.MEM, size, arg.kid(0));
-              else
-                 newArg = lir.node(Op.MEM, size, 
-                             lir.node(Op.ADD, I64, arg.kid(0).makeCopy(lir), lir.iconst(I64, 8)));
-              ImList regName = nthIparamReg(size, paramICounter);   /// 2013.7.25
-              listI.add(lir.node
-                     (Op.SET, size, nthIparam(size, paramICounter++), newArg));
-              if (regCallUses.isEmpty())      /// 2013.7.25
-                 regCallUses = new ImList(regName);
-              else
-                 regCallUses = regCallUses.append( new ImList(regName) );
-            }
-            if (aggrClass[j] == SSE) {
-              if (aggrClass[j+2] > 4)
-                 size = F64;
-              else
-                 size = F32;
-              if (j == 0)
-                 newArg = lir.node(Op.MEM, size, arg.kid(0));
-              else
-                 newArg = lir.node(Op.MEM, size, 
-                             lir.node(Op.ADD, I64, arg.kid(0).makeCopy(lir), lir.iconst(I64, 8)));
-              if (regCallUses.isEmpty())
-                regCallUses = new ImList(ImList.list("REG", "F64", "%xmm" + paramFCounter));
-              else
-                regCallUses = regCallUses.append(
-                             new ImList(ImList.list("REG", "F64", "%xmm" + paramFCounter)));
-              listF.add(lir.node
-                     (Op.SET, size, nthFparam(size, paramFCounter++), newArg));
-            }
-          }
-        }
-        break;
-      }
-    } // end for
-  
-    if (attr.allocaCalled && (stackOffset != 0)) {
-       int decr = (stackOffset + 15) & -16;
-       pre.add(lir.node
-                 (Op.SET, I64, spreg, lir.node
-                  (Op.SUB, I64, spreg, lir.iconst(I64, decr))));
-    }
-  
-    pre.concatenate(listM);
-    pre.concatenate(listF);
-    pre.concatenate(listPreI);
-    pre.concatenate(listI);
-  
-    if (maxStackOffset < stackOffset && !attr.allocaCalled)
-       maxStackOffset = stackOffset;
-    numberOfCALLs++;
-  
-      if (isVarArgs(node.kid(0))) {
-          int noOfFloatReg = Math.min(MAX_F_REGPARAM, paramFCounter);
-          pre.add(lir.node
-                 (Op.SET, I32, regnode(I32, "%eax"), lir.iconst(I32, noOfFloatReg)));
-          if (regCallUses.isEmpty())        /// 2013.7.25
-              regCallUses = new ImList(ImList.list("REG", "I32", "%eax"));
-          else
-              regCallUses = regCallUses.append(
-                             new ImList(ImList.list("REG", "I32", "%eax")));
-      }
-  
-    LirNode[] emptyVector = new LirNode[]{};
-    try {
-      LirNode retNode = lir.node(Op.LIST, Type.UNKNOWN, emptyVector);
-      if (retReg != null)
-        retNode = lir.node(Op.LIST, Type.UNKNOWN, retReg);
-      node = lir.node
-        (Op.PARALLEL, Type.UNKNOWN,
-         noRescan
-         (lir.node
-          (Op.CALL, Type.UNKNOWN, node.kid(0),
-           lir.node(Op.LIST, Type.UNKNOWN, emptyVector),
-           retNode)),
-         lir.decodeLir(new ImList("USE", regCallUses), func, module),
-         lir.decodeLir(new ImList("CLOBBER", regCallClobbers), func, module) );
-    } catch (SyntaxError e) {
-      throw new CantHappenException();
-    }
-  
-    if (attr.allocaCalled && (stackOffset != 0)) {
-       int incr = (stackOffset + 15) & -16;
-       post.add(lir.node
-                 (Op.SET, I64, spreg, lir.node
-                  (Op.ADD, I64, spreg, lir.iconst(I64, incr))));
-    }
-  
-    // value returned
-    if (ret != null) {
-      switch (Type.tag(ret.type)) {
-      case Type.INT:
-      case Type.FLOAT:
-        {
-          if (isSimple(ret)) {
-            post.add(lir.node(Op.SET, ret.type, ret, retReg));
-          } else {
-            LirNode tmp = func.newTemp(ret.type);
-            post.add(lir.node(Op.SET, ret.type, tmp, retReg));
-            post.add(lir.node(Op.SET, ret.type, ret, tmp));
-          }
-          break;
-        }
-      case Type.AGGREGATE:
-        if (aggrClass2[0] == MEMORY) // no action needed
-          break;
-        LirNode newAggr;
-        int type;
-        int iCounter = 0;
-        int fCounter = 0;
-        for (int k = 0; k < 2; k++) {
-            if (aggrClass2[k] == INT_CLASS) {
-              if (aggrClass2[k+2] > 4)
-                 type = I64;
-              else
-                 type = I32;
-              if (k == 0)
-                 newAggr = lir.node(Op.MEM, type, ret.kid(0));
-              else
-                 newAggr = lir.node(Op.MEM, type, 
-                             lir.node(Op.ADD, I64, ret.kid(0).makeCopy(lir), lir.iconst(I64, 8)));
-              post.add(lir.node
-                     (Op.SET, type, newAggr, nthIret(type, iCounter++)));
-            }
-            if (aggrClass2[k] == SSE) {
-              if (aggrClass2[k+2] > 4)
-                 type = F64;
-              else
-                 type = F32;
-              if (k == 0)
-                 newAggr = lir.node(Op.MEM, type, ret.kid(0));
-              else
-                 newAggr = lir.node(Op.MEM, type, 
-                             lir.node(Op.ADD, I64, ret.kid(0).makeCopy(lir), lir.iconst(I64, 8)));
-              post.add(lir.node
-                     (Op.SET, type, newAggr, nthFparam(type, fCounter++)));
-            }
-          }
-  
-      }
-    }
-    return node;
-  }
-  
-  
-  /** Postprocess list-form assembler source.
-   ** @param list assembler source in list form. **/
-  void peepHoleOpt(BiList list) {
-  }
-  
-  
-  /** Return floating point memory's size.
-   ** @param arg memory operand list.
-   ** @return "s" for float, "d" for double. **/
-  String floatSizeSuffix(Object arg) {
-    ImList mem = (ImList)arg;
-    if (mem.elem() == "mem") {
-      String size = (String)((ImList)mem).elem2nd();
-      if (size == "float")
-        return "s";
-      else if (size == "double")
-        return "l";    ///// "d" ???
-    }
-    throw new CantHappenException();
-  }
-  
-  
-  
-  /*
-   * Code building macros.
-   */
-  
-  
-  /** Decode SUBREG node. **/
-  Object jmac1(LirNode x) {
-    Symbol reg = ((LirSymRef)x.kid(0)).symbol;
-    int dtype = x.type;
-    int offset = (int)((LirIconst)x.kid(1)).value;
-    if (dtype == I32) {
-      if (offset == 0) {
-        if ( Character.isDigit(reg.name.charAt(2)) )
-           return reg.name.substring(0, reg.name.length() - 1) + "d"; 
-        return "%r" + reg.name.substring(2);
-      }
-    } else if (dtype == I16) {
-      if (offset == 0) {
-        if ( Character.isDigit(reg.name.charAt(2)) )
-           return reg.name.substring(0, reg.name.length() - 1) + "w"; 
-        return "%" + reg.name.substring(2);
-      }
-    } else if (dtype == I8) {
-      int namel = reg.name.length();
-      if (offset == 0) {
-        if ( Character.isDigit(reg.name.charAt(2)) )
-          return reg.name.substring(0, reg.name.length() - 1) + "b";
-        return "%" + reg.name.substring(namel - 2, namel - 1) + "l";
-      }
-      else if (offset == 1)
-        return "%" + reg.name.substring(namel - 2, namel - 1) + "h";
-    } else if (dtype == F32 || dtype == F64) {
-      if (offset == 0)
-        return reg.name;
-    }
-    throw new CantHappenException();
-  }
-  
-  
-  /* Code emission macros.
-   *  Patterns not defined below will be converted to:
-   *   (foo bar baz) --> foo   bar,baz   or foo(bar,baz)
-   */
-  
-  String jmac2(String x, String y) {
-    return emitAfter(x, y);
-  }
-  
-  String emitAfter(String x, String y) {
-    if (x.charAt(x.length() - 1) != ')')
-      return x + "+" + y;
-    else if (x.charAt(0) == '-' || x.charAt(0) == '(')
-      return y + x;
-    else
-      return y + "+" + x;
-  }
-  
-  String jmac3(String x, String y) {
-    if (y.charAt(0) == '-')
-      return x + y;
-    else
-      return x + "+" + y;
-  }
-  
-  String jmac4(String x, String y) {
-    if (y.charAt(0) == '-')
-      return x + "+" + y.substring(1);
-    else
-      return x + "-" + y;
-  }
-  
-  String jmac5(String x) {
-    return "" + (Integer.parseInt(x) - 32);
-  }
-  
-  String jmac6(String x) { return "$" + x; }
-  
-  String jmac7(String x) { return "*" + x; }
-  
-  String jmac8(String type, String x) { return x; }
-  
-  String jmac9(String base) {
-    return base + "(%rip)";
-  }
-  
-  String jmac10(String base) {
-    return base + "@GOTPCREL(%rip)";
-  }
-  
-  String jmac11(String base, String index) {
-    if (index == "") {
-      if ( (base.charAt(base.length() - 1) != ')') && 
-           ( Character.isLetter(base.charAt(0)) || base.charAt(0) == '_') )
-        return base + "(%rip)";
-      return base;
-    }
-    else if (base == "" || base.charAt(base.length() - 1) != ')')
-      return base + "(," + index + ")";
-    else
-      return base.substring(0, base.length() - 1) + "," + index + ")";
-  }
-  
-  String jmac12(String con, String reg) {
-    if (reg == "")
-      return con;
-    else
-      return con + "(" + reg + ")";
-  }
-  
-  String jmac13(String reg, String scale) {
-    if (scale == "1")
-      return reg;
-    else
-      return reg + "," + scale;
-  }
-  
-  /** Return lower half register name. **/
-  String jmac14(String x) {
-     if (Character.isDigit(x.charAt(2)))
-        return x.substring(0, x.length() - 1) + "w";
-     return "%" + x.substring(2); 
-  }
-  
-  /** Return lowest byte register name. **/
-  String jmac15(String x) {
-     if (Character.isDigit(x.charAt(2)))
-        return x.substring(0, x.length() - 1) + "b";
-     if (x.charAt(x.length() - 1) == 'i')
-        return "%" + x.substring(x.length() - 2, x.length()) + "l";
-     return "%" + x.substring(x.length() - 2, x.length() - 1) + "l";
-  }
-  
-  
-  /** Return lower 32bit of memory/register/constant operand. **/
-  String jmac16(String x) {
-    if (x.charAt(0) == '$')
-      return "$" + (Long.parseLong(x.substring(1)) & 0xffffffffL);
-    else if (x.charAt(0) == '%'){
-      if (Character.isDigit(x.charAt(2)))
-        return x + "d";
-      return "%e" + x.substring(2);
-    }
-    else
-      return x;
-  }
-  
-  String jmac17(String x) {
-    if (x.charAt(0) == '%'){
-      if (Character.isDigit(x.charAt(2)))
-        return x.substring(0, x.length() - 1);
-      return "%r" + x.substring(2);
-    }
-    else
-      return x;
-  }
-  
-  String jmac18(String x) {
-    int i = x.indexOf(',');
-    String tail;
-    if (i < 0) {
-       i = x.length();
-       tail ="";
-    } else
-       tail = x.substring(i, x.length());
-    if (Character.isDigit(x.charAt(2))) {
-       return x.substring(0, i-1) + tail;
-    }
-    return "%r" + x.substring(2, i) + tail;
-  }
-  
-  String jmac19(String x) {
-    int i = x.indexOf(')');
-    if (i < 0)
-       return x;
-    if (Character.isDigit(x.charAt(i-2))) {
-      return x.substring(0, i - 1) + ")";
-    } 
-    return x.substring(0, i - 3) + "r" + x.substring(i-2, i+1);
-  }
-  
-  /** Return upper 32bit of memory/register/constant operand. **/
-  String jmac20(String x) {
-    if (x.charAt(0) == '$')
-      return "$" + ((Long.parseLong(x.substring(1)) >> 32) & 0xffffffffL);
-    else if (x.charAt(0) == '%')
-      return x.substring(0, x.length() - 3);
-    else
-      return emitAfter(x, "4");
-  }
-  
-  /** Return expanded 32bit register name.(w to l) **/
-  String jmac21(String x) {
-    if (Character.isDigit(x.charAt(2)))
-       return x.substring(0, x.length() - 1) + "d";
-    return "%e" + x.substring(1);
-  }
-  
-  /** Return expanded 32bit register name.(b to l) **/
-  String jmac22(String x) {
-    if (Character.isDigit(x.charAt(2)))
-       return x.substring(0, x.length() - 1) + "d";
-    if (x.charAt(x.length() - 2) == 'i')
-       return "%e" + x.substring(1,3);
-    return "%e" + x.substring(1,2) + "x";
-  }
-  
-  /** Return expanded 64bit register name.(l to q) **/
-  String jmac23(String x) {
-    if (Character.isDigit(x.charAt(2)))
-       return x.substring(0, x.length() - 1);
-    return "%r" + x.substring(2,4);
-  }
-  
-  /** Return full register name. **/
-  String jmac24(String x){
-    if ((x.charAt(0) == '%') && (x.charAt(x.length() - 1) == 's'))
-      return x.substring(0, x.length() - 1);
-    return x;
-  }
-  
-  /** Generate prologue sequence. **/
-  String jmac25(Object f) {
-    Function func = (Function)f;
-    SaveRegisters saveList = (SaveRegisters)func.require(SaveRegisters.analyzer);
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    int frameSize = frameSize(func); 
-    String seq = "";
-    boolean rbpUsed = (frameSize != 0) || (attr.stackParams != 0) || attr.allocaCalled; 
-    attr.rbpUsed = rbpUsed;
-  
-    boolean odd = false; // number of callee-save registers is odd or not
-    String push = "";
-    for (NumberSet.Iterator it = saveList.calleeSave.iterator(); it.hasNext(); ) {
-      int reg = it.next();
-      push += "\n\tpushq\t" + machineParams.registerToString(reg);
-      odd = !odd;
-    }
-  
-    String varArgs = "";
-    if (attr.varArgFunction) {
-      for (int i = 0; i < 6 - attr.paramIcount; i++)
-        varArgs += STORE_I_REG[i];
-      for (int i = 0; i < 8 - attr.paramFcount; i++)
-        varArgs += STORE_F_REG[i];
-    }
-  
-    if (rbpUsed) {
-      seq = "\tpushq\t%rbp\n" + "\tmovq\t%rsp,%rbp";
-  
-      if (convention == "cygwin" && frameSize > 4000) { // round up frameSize ?
-        seq += "\n\tmovq\t$" + frameSize + ",%rax" +
-               "\n\tcall\t__alloca";
-      } else {
-        if ((attr.stackRequired != 0) && (push != "")) { // !attr.allocaCalled
-          int fSize = (frameSize + 15) & -16; // round up to 16byte boundary
-          if (odd)
-             fSize += 8;
-          if (fSize == 0)
-            seq += push;
-          else
-            seq += "\n\tsubq\t$" + fSize + ",%rsp" + varArgs + push;
-          int cSize = (attr.stackRequired +15) & -16;
-          seq += "\n\tsubq\t$" + cSize + ",%rsp";
-        } else { // (attr.stackRequired == 0) || (push == "") 
-          int fcSize = (frameSize + attr.stackRequired + 15) & -16;
-          if (odd)
-             fcSize += 8;
-          if (fcSize == 0)
-             seq += push;
-          else
-             seq += "\n\tsubq\t$" + fcSize + ",%rsp" + varArgs + push;
-        }
-      }
-    } else { // !rbpUsed == (frameSize == 0) && (attr.stackParams == 0) && !attr.allocaCalled
-      seq = push;
-      if (attr.numberOfCALLs != 0) {
-        int m = (attr.stackRequired + 15) & -16;
-        if (!odd)
-          m += 8;
-        if (m != 0)
-          seq += "\n\tsubq\t$" + m + ",%rsp";
-      }
-    }
-  
-    return seq;
-  }
-  
-  /** Generate epilogue sequence. **/
-  String jmac26(Object f, String rettype) {
-    Function func = (Function)f;
-    SaveRegisters saveList = (SaveRegisters)func.require(SaveRegisters.analyzer);
-    int frameSize = frameSize(func);
-    int size = (frameSize + 15) & -16; // round up to 16byte boundary
-    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
-    String pops = "";
-    int n = 0;
-    boolean odd = false; // number of callee-save registers is odd or not
-    for (NumberSet.Iterator it = saveList.calleeSave.iterator(); it.hasNext(); ) {
-      int reg = it.next();
-      pops = "\tpopq\t" + machineParams.registerToString(reg) + "\n" + pops;
-      n += 8;
-      odd = !odd;
-    }
-    String seq = "";
-  //  if (attr.allocaCalled && n != 0)
-    if (attr.rbpUsed){ // (frameSize != 0) || (attr.stackParams != 0) || attr.allocaCalled
-      if ((attr.stackRequired != 0) && (pops != "")) {
-        int fSize = (frameSize + 15) & -16; // round up to 16byte boundary
-        if (odd)
-             fSize += 8; 
-        seq = "\tleaq\t-" + (fSize + n) + "(%rbp),%rsp\n";
-      } else {  // (attr.stackRequired == 0) || (pops == "")
-        if (pops != "") {
-          int fcSize = (frameSize + attr.stackRequired + 15) & -16;
-          if (odd)
-             fcSize += 8;
-          seq = "\tleaq\t-" + (fcSize + n) + "(%rbp),%rsp\n";
-        }
-      }
-    } else { // !rbpUsed, i.e. (frameSize == 0) 
-      if (attr.numberOfCALLs != 0) {
-        int m = (attr.stackRequired + 15) & -16;
-        if (!odd)
-          m += 8;
-        if (m != 0)
-          seq = "\taddq\t$" + m + ",%rsp\n";
-      }
-    }
-  //  return seq + pops + "\tpopq\t%rbp\n\tret";
-    if (attr.rbpUsed)
-       return seq + pops + "\tleave\n\tret";
-    return seq + pops + "\tret";
-  }
-  
-  String jmac27(String con) {
-    return -Integer.parseInt(con) + "";
-  }
-  
-  
-  String jmac28(String x) { return "# line " + x; }
-  
-  String jmac29(String x) { return makeAsmSymbol(x); }
-  
-  
-  String jmac30(String format, Object args) { return emitAsmCode(format, (ImList)args); }
-  
-  
-  /** Emit beginning of segment **/
-  void emitBeginningOfSegment(PrintWriter out, String segment) {
-    if (convention == "mac") {
-      if (segment.equals(".text") || segment.equals(".rodata"))
-        out.println("\t.text");
-      else if (segment.equals(".data"))
-        out.println("\t.data");
-      else
-        out.println("\t.section " + segment);
-    } else
-      out.println("\t.section " + segment);
-  }
-  
-  void emitLinkage(PrintWriter out, SymStatic symbol) {
-    if (symbol.linkage == "XDEF"){
-        out.println("\t.globl\t" + makeAsmSymbol(symbol.name));
-    }
-  }
-  
-  /** Convert symbol to assembler form.
-   **  Prepend "_" when mac or cygwin (COFF), untouched otherwise (ELF). **/
-  String makeAsmSymbol(String symbol) {
-    if (convention == "mac" && symbol.charAt(0) != '.')
-      return "_" + symbol;
-    else
-      return symbol;
-  }
-  
-  public int alignForType(int type) {
-    switch (Type.bytes(type)) {
-    case 1: return 1;
-    case 2: return 2;
-    case 4: return 4;
-    default: return 8;
-    }
-  }
-  
-  String segmentForConst() { return ".rodata"; }
-  
-  /** Emit data **/
-  void emitData(PrintWriter out, int type, LirNode node) {
-    if (type == I64) {
-      if (node instanceof LirIconst){
-        long v = ((LirIconst)node).signedValue();
-        out.println("\t.long\t" + (v & 0xffffffffL)
-                    + "," + ((v >> 32) & 0xffffffffL));
-      } else
-          out.println("\t.quad\t" + lexpConv.convert(node));
-    }
-    else if (type == I32) {
-      out.println("\t.long\t" + lexpConv.convert(node));
-    }
-    else if (type == I16) {
-      out.println("\t.short\t" + ((LirIconst)node).signedValue());
-    }
-    else if (type == I8) {
-      out.println("\t.byte\t" + ((LirIconst)node).signedValue());
-    }
-    else if (type == F64) {
-      double value = ((LirFconst)node).value;
-      long bits = Double.doubleToLongBits(value);
-      out.println("\t.long\t0x" + Long.toString(bits & 0xffffffffL, 16)
-                  + ",0x" + Long.toString((bits >> 32) & 0xffffffffL, 16)
-                  + " /* " + value + " */");
-    }
-    else if (type == F32) {
-      double value = ((LirFconst)node).value;
-      long bits = Float.floatToIntBits((float)value);
-      out.println("\t.long\t0x" + Long.toString(bits & 0xffffffffL, 16)
-                  + " /* " + value + " */");
-    }
-    else {
-      throw new CantHappenException("unknown type: " + type);
-    }
-  }
-  
-  
-  /** Emit data common **/
-  void emitCommon(PrintWriter out, SymStatic symbol, int bytes) {
-    if (symbol.linkage == "LDEF")
-      out.println("\t.lcomm\t" + makeAsmSymbol(symbol.name)
-                  + "," + bytes);
-    else {
-      if (convention == "mac")
-        out.println("\t.comm\t"  + makeAsmSymbol(symbol.name)
-                    + ","  + bytes);
-      else
-        out.println("\t.comm\t"  + makeAsmSymbol(symbol.name)
-                    + ","  + bytes + "," + symbol.boundary);
-    }
-  }
-  
-    /** Emit data zeros **/
-    void emitZeros(PrintWriter out, int bytes) {
-      if (bytes > 0)
-        out.println("\t.space\t" + bytes); /* "\t.skip\t" in CodeGenerator */
-    }
+  
+  private boolean isOverlappedReg(LirNode node1, LirNode node2){
+     if ((node1.opCode != Op.REG) && (node1.opCode != Op.SUBREG))
+       return false;
+     if ((node2.opCode != Op.REG) && (node2.opCode != Op.SUBREG))
+       return false;
+     return machineParams.isOverlapped(node1, node2);
+  }
+  
+  private boolean isPower2(LirNode node){
+    if (node instanceof LirIconst){
+      long value = ((LirIconst)node).signedValue();
+      return (value & (value - 1)) == 0;
+    }
+    return false;
+  }
+  
+  private boolean isSmallConst(LirNode node1, LirNode node2){
+    return isSmallConst(node1) || isSmallConst(node2);
+  }
+  
+  private boolean isSmallConst(LirNode node){
+    if (node instanceof LirIconst){
+      long value = ((LirIconst)node).signedValue();
+      return (2 <= value) && (value <= 10);
+    }
+    return false;
+  }
+  
+  private boolean is32bitConstOrNotConst(LirNode node) {
+    if (node instanceof LirIconst) {
+      long value = ((LirIconst)node).signedValue();
+      return (-2147483648 <= value) && (value <= 2147483647);
+    }
+    return true;
+  }
+  
+  private boolean isConstAndNotIn32bit(LirNode node) {
+    if (node instanceof LirIconst) {
+      long value = ((LirIconst)node).signedValue();
+      return (-2147483648 > value) || (value > 2147483647);
+    }
+    return false;
+  }
+  
+  private boolean conventionIsNotMac() {
+    return convention != "mac";
+  }
+  
+  private boolean conventionIsMac() {
+    return convention == "mac";
+  }
+  
+  private boolean isX(LirNode node) {
+      SymStatic sym = (SymStatic)((LirSymRef) node).symbol;
+      return sym.linkage == "XREF";
+  }
+  
+  ImList regCallClobbers = new ImList(ImList.list("REG","I64","%rax"), new ImList(ImList.list("REG","I64","%rcx"), new ImList(ImList.list("REG","I64","%rdx"), new ImList(ImList.list("REG","I64","%rsi"), new ImList(ImList.list("REG","I64","%rdi"), new ImList(ImList.list("REG","I64","%r8"), new ImList(ImList.list("REG","I64","%r9"), new ImList(ImList.list("REG","I64","%r10"), new ImList(ImList.list("REG","I64","%r11"), new ImList(ImList.list("REG","F64","%xmm0"), new ImList(ImList.list("REG","F64","%xmm1"), new ImList(ImList.list("REG","F64","%xmm2"), new ImList(ImList.list("REG","F64","%xmm3"), new ImList(ImList.list("REG","F64","%xmm4"), new ImList(ImList.list("REG","F64","%xmm5"), new ImList(ImList.list("REG","F64","%xmm6"), new ImList(ImList.list("REG","F64","%xmm7"), new ImList(ImList.list("REG","F64","%xmm8"), new ImList(ImList.list("REG","F64","%xmm9"), new ImList(ImList.list("REG","F64","%xmm10"), ImList.list(ImList.list("REG","F64","%xmm11"),ImList.list("REG","F64","%xmm12"),ImList.list("REG","F64","%xmm13"),ImList.list("REG","F64","%xmm14"),ImList.list("REG","F64","%xmm15"))))))))))))))))))))));
+  
+  
+  /** X86_64's function attribute **/
+  static class X86_64Attr extends FunctionAttr {
+  
+    /** Maximum stack space used by call. **/
+    int stackRequired;
+  
+    /** alloca called in it **/
+    boolean allocaCalled;
+    boolean varArgFunction;
+    LirNode lastArg0;  // last arg of prologue
+    LirNode lastArg;  // last arg of va_start
+  
+    boolean rbpUsed;
+    int numberOfCALLs;
+    int stackParams;
+    int paramIcount; 
+    int paramFcount;
+  
+    boolean isRecursive;
+  
+    X86_64Attr(Function func) {
+      super(func);
+      stackRequired = 0;
+      allocaCalled = false;
+      varArgFunction = false;
+      stackParams = 0;
+      isRecursive = false;
+    }
+  }
+  
+  FunctionAttr newFunctionAttr(Function func) {
+    return new X86_64Attr(func);
+  }
+  
+  
+  /** Set alloca called. **/
+  void setAllocaCalled() {
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    attr.allocaCalled = true;
+  }
+  
+  LirNode setVaStartCalled(LirNode callNode) {
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    attr.varArgFunction = true;
+    attr.lastArg = callNode.kid(1).kid(1);
+    checkLastArg(attr);
+    func.localSymtab.addSymbol("__argSaveArea", Storage.FRAME, Type.AGGREGATE, 
+                               16, -176, null);
+    return callNode;
+  }
+  
+  void checkLastArg(X86_64Attr attr) {
+    if (attr.lastArg != attr.lastArg0)
+      ; //warning: second parameter of 'va_start' not last named argument
+  }
+  
+  LirNode setVaStartCalledLate(LirNode callNode, BiList pre) {
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    LirNode va_list = callNode.kid(1).kid(0);
+    LirNode bpreg = regnode(I64, "%rbp");
+    LirNode int_address = lir.node(Op.MEM, I64, lir.node
+                          (Op.ADD, I64, va_list, lir.iconst(I64, 16)));
+    LirNode stack_address = lir.node(Op.MEM, I64, lir.node
+                          (Op.ADD, I64, va_list, lir.iconst(I64, 8)));
+    LirNode int_offset = lir.node(Op.MEM, I32, va_list);
+    LirNode float_offset = lir.node(Op.MEM, I32, lir.node
+                          (Op.ADD, I64, va_list, lir.iconst(I64, 4)));
+    pre.add(lir.node(Op.SET, I64, int_address, lir.node
+                       (Op.SUB, I64, bpreg, lir.iconst(I64, 176))));
+    pre.add(lir.node(Op.SET, I64, stack_address, lir.node
+                       (Op.ADD, I64, bpreg, lir.iconst(I64, 16))));
+    pre.add(lir.node(Op.SET, I32, int_offset, lir.iconst(I32, attr.paramIcount * 8)));
+    return lir.node(Op.SET, I32, float_offset, lir.iconst(I32, attr.paramFcount * 16 + 48));
+  }
+  
+  LirNode rewriteVaArg(LirNode node, BiList pre) {
+    LirNode ret = node.kid(2).kid(0);
+    LirNode lastArg = node.kid(1).kid(1);
+    LirNode va_list = node.kid(1).kid(0);
+    LirNode int_address = lir.node(Op.MEM, I64, lir.node
+                          (Op.ADD, I64, va_list, lir.iconst(I64, 16)));
+    LirNode stack_address = lir.node(Op.MEM, I64, lir.node
+                          (Op.ADD, I64, va_list, lir.iconst(I64, 8)));
+    LirNode int_offset = lir.node(Op.MEM, I32, va_list);
+    LirNode float_offset = lir.node(Op.MEM, I32, lir.node
+                          (Op.ADD, I64, va_list, lir.iconst(I64, 4)));
+    LirNode tmp32 = func.newTemp(int_offset.type);
+    LirNode tmp64 = func.newTemp(int_address.type);
+    Label trueLabel = new Label(".Lva"+lir.getLabelVariant());
+    Label falseLabel = new Label(".Lva"+lir.getLabelVariant());
+    Label joinLabel = new Label(".Lva"+lir.getLabelVariant());
+    switch (Type.tag(lastArg.type)) {
+        case Type.INT:
+           pre.add(lir.node
+                   (Op.JUMPC, I64, lir.node
+                    (Op.TSTLTS, I32, int_offset, lir.iconst(I32, 48)),
+                     lir.labelRef(trueLabel), lir.labelRef(falseLabel)));
+           pre.add(lir.node
+                   (Op.DEFLABEL, I64, lir.labelRef(trueLabel)));
+           pre.add(lir.node
+                   (Op.SET, I64, tmp64, lir.node
+                    (Op.ADD, I64, int_address, int_offset.makeCopy(lir))));
+           pre.add(lir.node
+                   (Op.SET, I32, int_offset.makeCopy(lir), lir.node
+                    (Op.ADD, I32, int_offset.makeCopy(lir), lir.iconst(I32, 8))));
+           pre.add(lir.node
+                   (Op.JUMP, I64, lir.labelRef(joinLabel)));
+           pre.add(lir.node
+                   (Op.DEFLABEL, I64, lir.labelRef(falseLabel)));
+           pre.add(lir.node
+                   (Op.SET, I64, tmp64, stack_address));
+           pre.add(lir.node
+                   (Op.SET, I64, stack_address.makeCopy(lir), lir.node
+                    (Op.ADD, I64, tmp64, lir.iconst(I64, 8))));
+           pre.add(lir.node
+                   (Op.JUMP, I64, lir.labelRef(joinLabel)));
+           pre.add(lir.node
+                   (Op.DEFLABEL, I64, lir.labelRef(joinLabel)));
+           func.touch();
+           return lir.node(Op.SET, ret.type, ret, tmp64);
+        case Type.FLOAT:
+           pre.add(lir.node
+                   (Op.JUMPC, I64, lir.node
+                    (Op.TSTLTS, I32, float_offset, lir.iconst(I32, 176)),
+                     lir.labelRef(trueLabel), lir.labelRef(falseLabel)));
+           pre.add(lir.node
+                   (Op.DEFLABEL, I64, lir.labelRef(trueLabel)));
+           pre.add(lir.node
+          		   (Op.SET, I32, tmp32, float_offset.makeCopy(lir)));
+           pre.add(lir.node
+                   (Op.SET, I64, tmp64, lir.node
+                    (Op.ADD, I64, int_address, tmp32)));
+           pre.add(lir.node
+                   (Op.SET, I32, float_offset.makeCopy(lir), lir.node
+                    (Op.ADD, I32, tmp32, lir.iconst(I32, 16))));
+           pre.add(lir.node
+                   (Op.JUMP, I64, lir.labelRef(joinLabel)));
+           pre.add(lir.node
+                   (Op.DEFLABEL, I64, lir.labelRef(falseLabel)));
+           pre.add(lir.node
+                   (Op.SET, I64, tmp64, stack_address.makeCopy(lir)));
+           pre.add(lir.node
+                   (Op.SET, I64, stack_address.makeCopy(lir), lir.node
+                    (Op.ADD, I64, tmp64, lir.iconst(I64, 8))));
+           pre.add(lir.node
+                   (Op.JUMP, I64, lir.labelRef(joinLabel)));
+           pre.add(lir.node
+                   (Op.DEFLABEL, I64, lir.labelRef(joinLabel)));
+           func.touch();
+           return lir.node(Op.SET, ret.type, ret, tmp64);
+       default: //return null;
+           throw new CantHappenException("Unsupported type in va_list");
+    }
+  }
+  
+  void setFuncAttr(int numberOfCALLs, int maxStackOffset){
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    attr.numberOfCALLs = numberOfCALLs;
+    attr.stackRequired = maxStackOffset;
+  }
+  
+  void setStackParams(int stackParams) {
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    attr.stackParams = stackParams;
+  }
+  
+  void setParamCount(int paramIcount, int paramFcount, LirNode lastArg) {
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    attr.paramIcount = paramIcount;
+    attr.paramFcount = paramFcount;
+    attr.lastArg0 = lastArg;
+  }
+  
+  
+  LirNode stripConv(LirNode tree) {
+    switch (tree.opCode) {
+    case Op.CONVSX: case Op.CONVZX:
+      return tree.kid(0);
+    default:
+      return tree;
+    }
+  }
+  
+  
+  /** Rewrite FRAME node to target machine form. **/
+  LirNode rewriteFrame(LirNode node) {
+    Symbol rbp = func.getSymbol("%rbp");
+    int off = ((SymAuto)((LirSymRef)node).symbol).offset();
+    return lir.node
+      (Op.ADD, node.type, lir.symRef(rbp), lir.iconst(I64, (long)off));
+  }
+  
+  
+  /** Return early time pre-rewriting sequence. **/
+  public Transformer[] earlyRewritingSequence() {
+    return new Transformer[] {
+      localEarlyRewritingTrig
+    };
+  }
+  
+  
+  /** Return late time pre-rewriting sequence. **/
+  public Transformer[] lateRewritingSequence() {
+    return new Transformer[] {
+  //    AggregatePropagation.trig,
+      localLateRewritingTrig,
+      TailRecursionTrig,
+      ProcessFramesTrig
+    };
+  }
+  
+   final LocalTransformer TailRecursionTrig = new LocalTransformer() {
+        public boolean doIt(Function f, ImList args) {
+          func = f;
+          lir = f.newLir;
+          tailRecursion();
+          return true;
+        }
+  
+        public boolean doIt(Data data, ImList args) { return true; }
+        
+        public String name() { return "TailRecursion"; }
+  
+        public String subject() { return "Tail Recursion Elimination"; }
+   };
+  
+  private void tailRecursion() {
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    if ( ! attr.isRecursive )  return;
+    Label funcBeginLabel = new Label(func.symbol.name + "_begin");
+    List selfVoidCalls = new ArrayList();
+    List afterCalls = new ArrayList();
+    LirNode currentDefLabel = null;
+    BiList bl = func.lirList();
+    for (BiLink bp = bl.first(); !bp.atEnd(); bp = bp.next()) {
+      LirNode nextNode = (LirNode)bp.elem();
+      switch (nextNode.opCode) {
+      case Op.PROLOGUE:
+          bp.addAfter(lir.node(Op.DEFLABEL, I64, lir.labelRef(funcBeginLabel)));
+          break;
+      case Op.PARALLEL: 
+        // check (PARALLEL (CALL self)) (SET functionvalue) (SET returnvalue functionvalue) (JUMP)
+        //  or  (PARALLEL (CALL self)) (JUMP to EPILOGUE)
+          LirNode callNode = (LirNode)nextNode.kid(0);
+          if (callNode.opCode != Op.CALL) break;
+          if ( ! (callNode.kid(0) instanceof LirSymRef) ) break;
+          LirSymRef calledFunc = (LirSymRef)callNode.kid(0);
+          if (calledFunc.symbol.name != func.symbol.name) break;
+          LirNode nextNode1 = (LirNode)bp.next().elem();
+          if (nextNode1.opCode == Op.SET) {
+            LirNode leftSym = (LirNode)nextNode1.kid(0);
+            if ( ! (leftSym instanceof LirSymRef) ) break;
+            if ( ((LirSymRef)leftSym).symbol.name.indexOf("functionvalue") < 0 ) break;
+            nextNode1 = (LirNode)bp.next().next().elem();
+            if (nextNode1.opCode != Op.SET) break;
+            leftSym = (LirNode)nextNode1.kid(0);
+            if ( ! (leftSym instanceof LirSymRef) ) break;
+            if ( ((LirSymRef)leftSym).symbol.name.indexOf("returnvalue") < 0 ) break;
+            leftSym = (LirNode)nextNode1.kid(1); // rightSym
+            if ( ! (leftSym instanceof LirSymRef) ) break;
+            if ( ((LirSymRef)leftSym).symbol.name.indexOf("functionvalue") < 0 ) break;
+            nextNode1 = (LirNode)bp.next().next().next().elem();
+            if ( ! nextNode1.isBranch() ) break;
+            BiLink bp1, bp2, bp3, bp4;
+            bp1 = bp; bp2 = bp1.next(); bp3 = bp2.next(); bp4 = bp3.next();
+            bp.addBefore(lir.node(Op.JUMP, I64, lir.labelRef(funcBeginLabel)));
+            bp = bp.prev();
+            bp1.unlink(); bp2.unlink(); bp3.unlink(); bp4.unlink();
+            func.touch();
+            break;
+          } else if (nextNode1.opCode == Op.JUMP) {
+            selfVoidCalls.add(bp);
+            afterCalls.add((LirLabelRef)nextNode1.kid(0));
+          }
+          break;
+      case Op.DEFLABEL:
+          currentDefLabel = nextNode;
+          break;
+      case Op.EPILOGUE:
+          LirLabelRef currentLabel = (LirLabelRef)currentDefLabel.kid(0);
+          for (int i = 0; i < selfVoidCalls.size(); i++) {
+             if ((LirLabelRef)afterCalls.get(i) == currentLabel) {
+                BiLink tp1 = (BiLink)selfVoidCalls.get(i);
+                BiLink tp2 = tp1.next();
+                tp1.addBefore(lir.node(Op.JUMP, I64, lir.labelRef(funcBeginLabel)));
+                tp1.unlink(); tp2.unlink();
+                func.touch();
+             }
+          }
+          break;
+      default: break;
+      }
+    }
+  }
+  
+  LirNode rewriteDIVMODby1(LirNode node, BiList pre, int opCode){
+    LirNode src2 = node.kid(1);
+    if (!(src2 instanceof LirIconst))
+      return node;
+    long src2Value = ((LirIconst)src2).signedValue();
+    if (src2Value == 1){
+      switch (opCode){
+      case Op.DIVS:
+      case Op.DIVU:
+        return node.kid(0);
+      case Op.MODS: 
+      case Op.MODU:
+        return lir.iconst(node.type, 0);
+      }
+    }
+    return node;
+  }
+  
+  LirNode rewriteDIVMOD(LirNode node, BiList pre, int opCode){
+    LirNode src2 = node.kid(1);
+    LirNode dst;
+    if (isPower2(src2)){
+      dst = rewriteDIVMODtoShift(node, pre, opCode);
+      if (dst != null)
+        return dst;
+    }
+    LirNode src1 = node.kid(0);
+    LirNode areg = regnode(src1.type, (src1.type == I32 ? "%eax" : "%rax"));
+    if (src1.equals(areg))
+      return node;
+    dst = func.newTemp(node.type);
+    pre.add(lir.node(Op.SET, src1.type, areg, src1));
+    pre.add(lir.node
+             (Op.SET, dst.type, dst, lir.node
+               (opCode, src1.type, areg, src2)));
+    return dst;
+  }
+  
+  LirNode rewriteDIVMODtoShift(LirNode node, BiList pre, int opCode){
+    LirNode src1 = node.kid(0);
+    LirNode src2 = node.kid(1);
+    int typeBits = Type.bits(src1.type);
+    LirNode dst, temp;
+    long src2Value = ((LirIconst)src2).signedValue();
+    int k; long j = src2Value;
+    for (k = 0; (j >>= 1) > 0; k++)
+         ;
+    if (k >= typeBits)
+      return null; 
+    if (k != 0 && src1.opCode != Op.REG){
+        src1 = func.newTemp(src1.type);
+        pre.add(lir.node(Op.SET, src1.type, src1, node.kid(0)));
+    }
+  
+    switch (opCode){
+    case Op.DIVS:
+  //    if (k == 0)
+  //      return src1;
+      dst = func.newTemp(node.type);
+      temp = func.newTemp(node.type);
+      if (k == 1)
+        pre.add(lir.node
+                (Op.SET, temp.type, temp, lir.node
+                 (Op.RSHU, src1.type, src1, lir.iconst(src2.type, typeBits - 1))));
+      else
+        pre.add(lir.node
+                (Op.SET, temp.type, temp, lir.node
+                 (Op.RSHU, src1.type, lir.node
+                  (Op.RSHS, src1.type, src1, lir.iconst(src2.type, k-1)),
+                  lir.iconst(src2.type, typeBits - k)))); 
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+               (Op.RSHS, temp.type, lir.node
+                (Op.ADD, temp.type, temp, src1),
+                lir.iconst(src2.type, k))));
+      return dst;
+    case Op.MODS:
+  //    if (k == 0) 
+  //      return lir.iconst(node.type, 0);
+      dst = func.newTemp(node.type);
+      temp = func.newTemp(node.type);
+      if (k == 1)
+        pre.add(lir.node
+                (Op.SET, temp.type, temp, lir.node
+                 (Op.RSHU, src1.type, src1, lir.iconst(src2.type, typeBits - 1))));
+      else
+        pre.add(lir.node
+                (Op.SET, temp.type, temp, lir.node
+                 (Op.RSHU, src1.type, lir.node
+                  (Op.RSHS, src1.type, src1, lir.iconst(src2.type, k-1)),
+                  lir.iconst(src2.type, typeBits - k)))); 
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+               (Op.SUB, src1.type, src1, lir.node
+                (Op.BAND, temp.type, lir.node
+                 (Op.ADD, temp.type, temp, src1),
+                 lir.iconst(src2.type, - src2Value)))));
+      return dst;
+    case Op.DIVU:
+  //    if (k == 0)
+  //      return src1;
+      return lir.node(Op.RSHU, src1.type, src1, lir.iconst(src2.type, k));
+    case Op.MODU:
+  //    if (k == 0) 
+  //      return lir.iconst(node.type, 0);
+      return lir.node(Op.BAND, src1.type, src1, 
+                               lir.iconst(src2.type, src2Value - 1));
+    default: return node; // for javac check
+    }
+  }
+  
+  LirNode rewriteMULtoShift(LirNode node, BiList pre){
+    LirNode src1 = node.kid(0);
+    LirNode src2 = node.kid(1);
+    if (isSmallConst(src1)) {
+       src1 = src2;
+       src2 = node.kid(0);
+    }
+    if (src1.opCode != Op.REG) {
+      LirNode src1temp = func.newTemp(src1.type);
+      pre.add(lir.node(Op.SET, src1temp.type, src1temp, src1));
+      src1 = src1temp;
+    }
+    LirNode dst = func.newTemp(node.type);
+    int src2Value = (int)((LirIconst)src2).signedValue();
+    switch (src2Value) {
+    case 2:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 1))));
+      break;
+    case 3:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+               (Op.ADD, src1.type, src1, lir.node
+                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 1)))));
+      break;
+    case 4:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 2))));
+      break;
+    case 5:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+               (Op.ADD, src1.type, src1, lir.node
+                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 2)))));
+      break;
+    case 6:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+               (Op.LSHS, src1.type, lir.node
+                (Op.ADD, src1.type, src1, lir.node
+                 (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 1))),
+                lir.iconst(src2.type, 1))));
+      break;
+    case 7:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+               (Op.SUB, src1.type, lir.node
+                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 3)),
+                src1)));
+      break;
+    case 8:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 3))));
+      break;
+    case 9:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+               (Op.ADD, src1.type, lir.node
+                (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 3)),
+                src1)));
+      break;
+    case 10:
+      pre.add(lir.node
+              (Op.SET, dst.type, dst, lir.node
+               (Op.LSHS, src1.type, lir.node
+                (Op.ADD, src1.type, src1, lir.node
+                 (Op.LSHS, src1.type, src1, lir.iconst(src2.type, 2))),
+                lir.iconst(src2.type, 1))));
+      break;
+    default: return null;
+    }
+    return dst;
+  }
+  
+  static final int MAX_I_REGPARAM = 6;
+  static final String[][] IREGPARAM = { {"%rdi", "%edi", "%di", "%dil"},
+                                        {"%rsi", "%esi", "%si", "%sil"},
+                                        {"%rdx", "%edx", "%dx", "%dl"},
+                                        {"%rcx", "%ecx", "%cx", "%cl"},
+                                        {"%r8", "%r8d", "%r8w", "%r8b"},
+                                        {"%r9", "%r9d", "%r9w", "%r9b"} };
+  static final int MAX_F_REGPARAM = 8;
+  
+  static final String[] STORE_F_REG = { "\n\tmovaps\t%xmm7,-16(%rbp)",
+                                        "\n\tmovaps\t%xmm6,-32(%rbp)",
+                                        "\n\tmovaps\t%xmm5,-48(%rbp)",
+                                        "\n\tmovaps\t%xmm4,-64(%rbp)",
+                                        "\n\tmovaps\t%xmm3,-80(%rbp)",
+                                        "\n\tmovaps\t%xmm2,-96(%rbp)",
+                                        "\n\tmovaps\t%xmm1,-112(%rbp)", 
+                                        "\n\tmovaps\t%xmm0,-128(%rbp)",};  
+  static final String[] STORE_I_REG = { "\n\tmovq\t%r9,-136(%rbp)",
+                                        "\n\tmovq\t%r8,-144(%rbp)",
+                                        "\n\tmovq\t%rcx,-152(%rbp)",
+                                        "\n\tmovq\t%rdx,-160(%rbp)",
+                                        "\n\tmovq\t%rsi,-168(%rbp)",
+                                        "\n\tmovq\t%rdi,-176(%rbp)",}; 
+  
+  static final String[][] RETURN_I_REG = { {"%rax", "%eax"},
+                                           {"%rdx", "%edx"} };
+         
+  static final int NO_CLASS = 0;
+  static final int MEMORY = 1;
+  static final int INT_CLASS = 2;
+  static final int SSE = 3;
+  
+  int maxStackOffset = 0;
+  int numberOfCALLs = 0;
+  boolean rbpUsed = true;
+  int[] retAggrClass = null; // classes of returning aggregate 
+  LirNode retAggrAddr = null; // address of returning aggregate
+  
+  SymRoot symRoot = null;
+  
+  SymRoot getSymRoot() {
+    if (symRoot != null)
+      return symRoot;
+    Thread th = Thread.currentThread();
+    IoRoot io = null;
+    if (th instanceof CompileThread)
+      io = ((CompileThread) th).getIoRoot();
+    symRoot = io.symRoot;
+    return symRoot;
+  }
+  
+  /** count number of parameters in PROLOGUE **/
+  LirNode paramCount(LirNode node) {
+    int paramFcount = 0;
+    int paramIcount = 0;
+    int n = node.nKids();
+  
+    for (int i = 1; i < n; i++) {
+      LirNode arg = node.kid(i);
+      switch (Type.tag(arg.type)) {
+        case Type.INT: paramIcount++; break;
+        case Type.FLOAT: paramFcount++; break;
+      }
+    }
+    setParamCount(paramIcount, paramFcount, node.kid(n-1));////
+    return null;
+  }
+  
+  /** Rewrite PROLOGUE **/
+  LirNode rewritePrologue(LirNode node, BiList post) {
+    int location = 16;
+    LirNode base = regnode(I64, "%rbp");
+    int paramFcount = 0;
+    int paramIcount = 0;
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    maxStackOffset = 0;
+    numberOfCALLs = 0;
+  
+    if (func.origEpilogue.nKids() > 1
+        && Type.tag(func.origEpilogue.kid(1).type) == Type.AGGREGATE) {
+      // First parameter may be a pointer to struct returning value.
+      LirNode ret = func.origEpilogue.kid(1);
+      Subp subp = (Subp)getSymRoot().sym.getOriginalSym(func.symbol.name);
+      coins.sym.Type retType = subp.getReturnValueType();
+      retAggrClass = classify(retType);
+      if (retAggrClass[0] == MEMORY) {
+        retAggrAddr = func.newTemp(I64);
+        post.add(lir.node(Op.SET, I64, retAggrAddr,  // store %rdi to retAggrAddr
+                          nthIparam(I64, paramIcount++)));
+      }
+    }
+    
+    int n = node.nKids();
+    for (int i = 1; i < n; i++) {
+      LirNode arg = node.kid(i);
+      
+      if (arg.opCode == Op.MEM) {
+        // set location to symbol table
+        if (arg.kid(0).opCode != Op.FRAME)
+          throw new CantHappenException("Malformed aggregate parameter");
+        SymAuto var = (SymAuto)((LirSymRef)arg.kid(0)).symbol;
+      } //// else 
+        switch (Type.tag(arg.type)) {
+        case Type.INT: 
+          if (paramIcount < MAX_I_REGPARAM) {
+              post.add(lir.node(Op.SET, arg.type, arg,
+                          nthIparam(arg.type, paramIcount++)));
+          } else {
+              post.add(lir.node(Op.SET, arg.type, arg,
+                         stackMem(arg.type, location, base)));
+              location += 8;
+          }
+          break;
+        case Type.FLOAT:
+          if (paramFcount < MAX_F_REGPARAM) {
+             post.add(lir.node(Op.SET, arg.type, arg,
+                          nthFparam(arg.type, paramFcount++)));
+          } else {
+              post.add(lir.node(Op.SET, arg.type, arg,
+                         stackMem(arg.type, location, base)));
+              location += 8;
+          }
+          break;
+        case Type.AGGREGATE:
+          int[] aggrClass = classify(hirType(arg));
+          int i_reg = 0;
+          int f_reg = 0;
+          if (aggrClass[0] == INT_CLASS) i_reg++;
+          if (aggrClass[1] == INT_CLASS) i_reg++;
+          if (aggrClass[0] == SSE) f_reg++;
+          if (aggrClass[1] == SSE) f_reg++;
+          if (aggrClass[0] == MEMORY || (paramIcount + i_reg > MAX_I_REGPARAM)
+                                   || (paramFcount + f_reg > MAX_F_REGPARAM)) {
+            LirNode baseLoc = lir.node(Op.ADD, I64, base, 
+                                  lir.iconst(I64, location + adjustEndian(arg.type)));
+            post.add(lir.node
+  	        (Op.SET, arg.type, arg, lir.operator
+                 (Op.MEM, arg.type, baseLoc, ImList.list("&align", "8"))));
+            location += Type.bytes(arg.type);
+          } else {
+            LirNode newArg;
+            int size;
+            for (int j = 0; j < 2; j++) {
+              if (aggrClass[j] == INT_CLASS) {
+                if (aggrClass[j+2] > 4)
+                   size = I64;
+                else
+                   size = I32;
+                if (j == 0)
+                   newArg = lir.node(Op.MEM, size, arg.kid(0));
+                else
+                   newArg = lir.node(Op.MEM, size, 
+                              lir.node(Op.ADD, I64, arg.kid(0), lir.iconst(I64, 8)));
+                post.add(lir.node
+                       (Op.SET, size, newArg, nthIparam(size, paramIcount++)));
+              }
+              if (aggrClass[j] == SSE) {
+                if (aggrClass[j+2] > 4)
+                   size = F64;
+                else
+                   size = F32;
+                if (j == 0)
+                   newArg = lir.node(Op.MEM, size, arg.kid(0));
+                else
+                   newArg = lir.node(Op.MEM, size, 
+                             lir.node(Op.ADD, I64, arg.kid(0), lir.iconst(I64, 8)));
+                post.add(lir.node
+                     (Op.SET, size, newArg, nthFparam(size, paramFcount++)));
+              } // if
+            } // for
+          } // else
+  
+        } // switch
+    } // for
+    if (location > 16)
+      setStackParams(location - 16);
+  //  setParamCount(paramIcount, paramFcount); // done by early rewriting
+    return lir.node(Op.PROLOGUE, Type.UNKNOWN, node.kid(0));
+  }
+  
+  private LirNode nthIparam(int type, int counter){
+    int rank = 3; // rank = I8
+    if (counter < MAX_I_REGPARAM) {
+       if (type == I32) rank = 1;
+       else if (type == I16) rank = 2;
+       else if (type == I64) rank = 0;
+       return regnode(type, IREGPARAM[counter][rank]);
+    }
+    return null;
+  }
+  
+  private ImList nthIparamReg(int type, int counter){ /// 2013.7.25
+    int rank = 3; // rank = I8
+    String typeString = "I8";
+    if (counter < MAX_I_REGPARAM) {
+       if (type == I32) { rank = 1; typeString = "I32"; }
+       else if (type == I16) { rank = 2; typeString = "I16"; }
+       else if (type == I64) { rank = 0; typeString = "I64"; }
+       return ImList.list("REG", typeString, IREGPARAM[counter][rank]);
+    }
+    return null;
+  }
+  
+  private LirNode nthIret(int type, int counter) {
+    int rank = 0; // rank = I64
+    if (type == I32) rank = 1;
+    return regnode(type, RETURN_I_REG[counter][rank]);
+  }
+  
+  private LirNode nthFparam(int type, int counter){
+    if (counter < MAX_F_REGPARAM) {
+       if (type == F64) //;;;
+          return regnode(type, "%xmm" + counter);
+       return regnode(type, "%xmm" + counter + "s"); //;;;
+    }
+    return null;
+  }
+  
+  private LirNode regnode(int type, String name) {
+    LirNode master = lir.symRef(module.globalSymtab.get(name));
+    switch (Type.tag(type)) {
+    case Type.INT:
+      return master;
+  
+    case Type.FLOAT:
+  //    if (type == F64)   //;;;
+        return master;
+  //    else if (type == F32)  //;;;
+  //      return lir.node  //;;;
+  //        (Op.SUBREG, F32, master, lir.untaggedIconst(I32, 0));  //;;;
+  
+    default:
+      return null;
+    }
+  }
+  
+  
+  private LirNode stackMem(int type, int location, LirNode base) {
+    return lir.node
+      (Op.MEM, type, lir.node
+       (Op.ADD, I64, base,
+        lir.iconst(I64, location + adjustEndian(type))));
+  }
+  
+  private int adjustEndian(int type) { return 0; }
+  
+  
+  /** Return the register for value returned. **/
+  LirNode returnReg(int type) {
+    switch (Type.tag(type)) {
+    case Type.INT:
+      switch (Type.bytes(type)) {
+      case 1: return regnode(type, "%al");
+      case 2: return regnode(type, "%ax");
+      case 4: return regnode(type, "%eax");
+      case 8: return regnode(type, "%rax");
+      default:
+        return null;
+      }
+    case Type.FLOAT:
+      if (type == F64)
+        return regnode(type, "%xmm0");
+      return regnode(type, "%xmm0s");
+    default:
+      return null;
+    }
+  }
+  
+  
+  /** Rewrite EPILOGUE **/
+  LirNode rewriteEpilogue(LirNode node, BiList pre) {
+    setFuncAttr(numberOfCALLs, maxStackOffset);
+    if (node.nKids() < 2)
+      return node;
+  
+    LirNode ret = node.kid(1);
+    LirNode reg = null;
+    switch (Type.tag(ret.type)) {
+    case Type.INT:
+    case Type.FLOAT:
+      reg = returnReg(ret.type);
+      pre.add(lir.node(Op.SET, ret.type, reg, ret));
+      return lir.node(Op.EPILOGUE, Type.UNKNOWN, node.kid(0), reg);
+  
+    case Type.AGGREGATE:
+      if (retAggrClass[0] == MEMORY) {
+        pre.add(lir.node
+               (Op.SET, ret.type, lir.operator
+                 (Op.MEM, ret.type, retAggrAddr,
+                 ImList.list("&align", "8")),
+  	      ret));
+        return lir.node(Op.EPILOGUE, Type.UNKNOWN, new LirNode[]{});
+      }
+      LirNode newArg;
+      int type;
+      int iCounter = 0;
+      int fCounter = 0;
+      for (int j = 0; j < 2; j++) {
+         if (retAggrClass[j] == INT_CLASS) {
+            if (retAggrClass[j+2] > 4)
+               type = I64;
+            else
+               type = I32;
+            if (j == 0)
+               newArg = lir.node(Op.MEM, type, ret.kid(0));
+            else
+               newArg = lir.node(Op.MEM, type, 
+                             lir.node(Op.ADD, I64, ret.kid(0), lir.iconst(I64, 8)));
+            reg = nthIret(type, iCounter++);
+            pre.add(lir.node
+                     (Op.SET, type, reg, newArg));
+            }
+         if (retAggrClass[j] == SSE) {
+            if (retAggrClass[j+2] > 4)
+               type = F64;
+            else
+               type = F32;
+            if (j == 0)
+               newArg = lir.node(Op.MEM, type, ret.kid(0));
+            else
+               newArg = lir.node(Op.MEM, type, 
+                             lir.node(Op.ADD, I64, ret.kid(0), lir.iconst(I64, 8)));
+            reg = nthFparam(type, fCounter++);
+            pre.add(lir.node
+                     (Op.SET, type, reg, newArg));
+         }
+      } // for
+      return lir.node(Op.EPILOGUE, Type.UNKNOWN, node.kid(0), reg);
+    default:
+      throw new CantHappenException();
+    }
+  }
+  
+  
+  boolean isVarArgs(LirNode calledFunc){
+    if ( !(calledFunc instanceof LirSymRef) )
+      return true;
+    String name = ((LirSymRef)calledFunc).symbol.name;
+    if (name == "printf" || name == "scanf" || name == "sscanf" || name == "sprintf")
+       return true;
+    Sym symFunc = getSymRoot().sym.getOriginalSym(name);
+    if ( !(symFunc instanceof Subp))
+      	return true;
+    return ((SubpType)symFunc.getSymType()).hasOptionalParam();
+  }
+  
+  coins.sym.Type hirType(LirNode arg) {
+    if (!(arg.kid(0) instanceof LirSymRef))
+       throw new CantHappenException("unable to get aggregate info (LirSymRef)");
+    LirSymRef lval = (LirSymRef)arg.kid(0);
+    Symbol symbol = func.localSymtab.get(lval.symbol.name);
+    if (symbol == null)
+        symbol = func.module.globalSymtab.get(lval.symbol.name);
+    ImList symbolOpt = symbol.opt();
+    if (symbolOpt == null || symbolOpt == ImList.Empty)
+      	throw new CantHappenException("unable to get aggregate info (symbol.opt())");
+    String aggrName = ((QuotedString)symbol.opt().elem2nd()).body.intern();
+    Sym symAggr = getSymRoot().sym.getOriginalSym(aggrName);
+    coins.sym.Type aggrType = symAggr.getSymType();
+    return aggrType;
+  }
+  
+  int[] classify(coins.sym.Type aggrType) {
+    int[] aggrClass = new int[4];
+    if (aggrType.getSizeValue() > 16) {
+      aggrClass[0] = MEMORY;
+      return aggrClass;
+    }
+    aggrClass[0] = NO_CLASS;
+    aggrClass[1] = NO_CLASS;
+    aggrClass[2] = 0; // real size of 1st 8-byte
+    aggrClass[3] = 0; // real size of 2nd 8-byte
+    int[] index_disp = new int[2];
+    index_disp[0] = 0; //index
+    index_disp[1] = 0; //disp of first elem in index-th 8-byte 
+    IrList elems = null;
+    if ((aggrType instanceof StructType) || (aggrType instanceof UnionType)){
+       if (aggrType instanceof StructType)
+         elems = ((StructType)aggrType).getElemList();
+       else
+         elems = ((UnionType)aggrType).getElemList();
+       java.util.ListIterator it = elems.iterator();
+       while (it.hasNext()){
+          Elem nextSym = (Elem)it.next();
+          int nextSize = (int)nextSym.getSize();
+          int nextDisp = (int)nextSym.evaluateDisp();
+          if (index_disp[0]*8 + nextDisp + nextSize - index_disp[1] > 16) {
+             aggrClass[0] = MEMORY;
+             return aggrClass;
+          }
+          coins.sym.Type nextType = nextSym.getSymType();
+          if (nextType.isScalar()) { 
+             if (isInRegister(aggrClass, index_disp, nextSize, nextDisp, nextType))
+                continue;  // aggrClass and index_disp may be modified
+             else
+                return aggrClass;  // aggrClass[0] must be MEMORY
+          } else {
+             IrList subElems = null;
+             if ((nextType instanceof StructType) || (nextType instanceof UnionType)){
+                if (nextType instanceof StructType)
+                   subElems = ((StructType)nextType).getElemList();
+                else
+                   subElems = ((UnionType)nextType).getElemList();
+                java.util.ListIterator subIt = subElems.iterator();
+                while (subIt.hasNext()){
+                   nextSym = (Elem)subIt.next();
+                   nextSize = (int)nextSym.getSize();
+                   int nextDisp2 = nextDisp + (int)nextSym.evaluateDisp();
+                   nextType = nextSym.getSymType();
+                   if (nextType.isScalar()) { 
+                     if (isInRegister(aggrClass, index_disp, nextSize, nextDisp2, nextType))
+                        continue;  // aggrClass and index_disp may be modified
+                     else
+                        return aggrClass;  // aggrClass[0] must be MEMORY
+                   } else {
+                     System.out.println("unsupported complex aggregate");
+                     aggrClass[0] = MEMORY; return aggrClass;
+                   }
+                }
+             } else if (nextType instanceof VectorType){
+                int count = (int)((VectorType)nextType).getElemCount();
+                nextType = ((VectorType)nextType).getElemType();
+                if (! nextType.isScalar()) {
+                   System.out.println("unsupported complex aggregate");
+                   aggrClass[0] = MEMORY; return aggrClass;
+                }
+                nextSize = (int)nextType.getSizeValue();
+                for (int i = 0; i < count; i++){
+                   if (isInRegister(aggrClass, index_disp, nextSize, 
+                                    nextDisp + i*nextSize, nextType))
+                      continue;  // aggrClass and index_disp may be modified
+                   else
+                      return aggrClass;  // aggrClass[0] must be MEMORY
+                }
+             }
+          }
+       }
+       return aggrClass;
+    } 
+    aggrClass[0] = MEMORY; return aggrClass;
+  }
+  
+  boolean isInRegister(int[] aggrClass, int[] index_disp, 
+                       int nextSize, int nextDisp, coins.sym.Type nextType) {
+    if (!nextType.isBasicType() && nextType.isScalar())
+        nextType = nextType.getFinalOrigin();
+    int i = index_disp[0];
+    int originalDisp = index_disp[1];
+    int nextClass;
+    if (nextType.isInteger()) {
+      nextClass = INT_CLASS;
+    } else {
+      nextClass = SSE;
+    }
+    if (nextDisp + nextSize - originalDisp > 8) {
+      if (i > 0) {
+        aggrClass[0] = MEMORY;
+        return false;
+      } else {
+        index_disp[0] = 1;
+        aggrClass[1] = nextClass;
+        index_disp[1] = nextDisp;
+        aggrClass[3] = nextSize;
+        return true;
+      }
+    } else {
+      if (nextClass == INT_CLASS)
+         aggrClass[i] = INT_CLASS;
+      else // nextClass == SSE
+        if (aggrClass[i] != INT_CLASS)
+           aggrClass[i] = SSE;
+      aggrClass[i+2] = nextDisp + nextSize - originalDisp; // size
+      return true;
+    }
+    
+  }
+  
+  /** Rewrite CALL node. **/
+  LirNode rewriteCall(LirNode node, BiList pre, BiList post) {
+    BiList listPreI = new BiList(); // for evaluation of int register parameter expressions
+    BiList listI = new BiList(); // for passing int register parameters
+    BiList listF = new BiList();  // for float register parameters
+    BiList listM = new BiList();  // for stacked parameters
+    ImList regCallUses = ImList.list();
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    
+    LirNode calledFunc = node.kid(0);
+    if (calledFunc instanceof LirSymRef) {
+       String calledFuncName = ((LirSymRef)calledFunc).symbol.name;
+       if ( calledFuncName == func.symbol.name  && frameIsEmpty(func))
+          attr.isRecursive = true;
+       if ( convention == "mac" && (calledFuncName == "fprintf" || calledFuncName == "fscanf") )
+          throw new CantHappenException("fprintf and fscanf are unsupported in x86_64-mac");
+    }
+    LirNode args = node.kid(1);
+    LirNode ret = null;
+    if (node.kid(2).nKids() > 0)
+      ret = node.kid(2).kid(0);
+    int n = args.nKids();
+    LirNode spreg = regnode(I64, "%rsp");
+  
+    int stackOffset = 0;
+    int paramICounter = 0;
+    int paramFCounter = 0;
+  
+    int[] aggrClass2 = null; //for returning aggregate
+    LirNode retReg = null; ///ret;
+    if (ret != null) {
+      switch (Type.tag(ret.type)) {
+      case Type.INT:
+      case Type.FLOAT:
+        retReg = returnReg(ret.type);
+        break;
+      case Type.AGGREGATE:
+        if (ret.opCode != Op.MEM)
+          throw new CantHappenException();
+        if ( !(calledFunc instanceof LirSymRef) )
+          throw new CantHappenException("unable to get called function's name");
+        Subp subp = (Subp)getSymRoot().sym.getOriginalSym(((LirSymRef)calledFunc).symbol.name);
+        coins.sym.Type retType = subp.getReturnValueType();
+        aggrClass2 = classify(retType);
+        if (aggrClass2[0] == MEMORY) {
+          listI.add(lir.node
+                  (Op.SET, I64, nthIparam(I64, paramICounter++), ret.kid(0)));
+          retReg = returnReg(I64);
+        }
+        break;
+      }
+    }
+  
+    for (int i = 0; i < n; i++) {
+      LirNode arg = args.kid(i);
+      // for convention "mac" and STATIC and "XREF"
+      if (conventionIsMac()) {
+        if (arg.opCode == Op.STATIC && isX(arg)) {
+          if (paramICounter < MAX_I_REGPARAM){
+            ImList regName = nthIparamReg(arg.type, paramICounter);  /// 2013.7.25
+            LirNode temp1 = func.newTemp(arg.type);
+            listPreI.add(lir.node
+                  (Op.SET, arg.type, temp1, lir.node
+                    (Op.MEM, arg.type, arg)));
+            listI.add(lir.node
+                (Op.SET, arg.type, nthIparam(arg.type, paramICounter++), temp1));
+            if (regCallUses.isEmpty())                /// 2013.7.25
+                regCallUses = new ImList(regName);
+            else
+                regCallUses = regCallUses.append( new ImList(regName) );
+          } else {
+            listM.add(lir.node
+                  (Op.SET, arg.type, lir.node
+                   (Op.MEM, arg.type, lir.node
+                    (Op.ADD, I64, spreg, lir.iconst(I64, stackOffset))),
+                   arg));
+            stackOffset += 8;
+          }
+          continue;
+        }
+      }
+      switch (Type.tag(arg.type)) {
+      case Type.INT:
+        if (Type.bits(arg.type) < 32)
+          arg = lir.node(Op.CONVZX, I32, arg);
+        if (paramICounter < MAX_I_REGPARAM) {
+          ImList regName = nthIparamReg(arg.type, paramICounter);  /// 2013.7.25
+          LirNode temp = func.newTemp(arg.type);
+          listPreI.add(lir.node
+                  (Op.SET, arg.type, temp, arg));
+          listI.add(lir.node
+                  (Op.SET, arg.type, nthIparam(arg.type, paramICounter++), temp));
+          if (regCallUses.isEmpty())              /// 2013.7.25
+              regCallUses = new ImList(regName);
+          else
+              regCallUses = regCallUses.append( new ImList(regName) );
+        } else {
+          listM.add(lir.node
+                  (Op.SET, arg.type, lir.node
+                   (Op.MEM, arg.type, lir.node
+                    (Op.ADD, I64, spreg, lir.iconst(I64, stackOffset))),
+                   arg));
+          stackOffset += 8;
+        }
+        break;
+      case Type.FLOAT:
+        if (paramFCounter < MAX_F_REGPARAM) {
+          if (regCallUses.isEmpty())
+              regCallUses = new ImList(ImList.list("REG", "F64", "%xmm" + paramFCounter));
+          else
+              regCallUses = regCallUses.append(
+                             new ImList(ImList.list("REG", "F64", "%xmm" + paramFCounter)));
+          listF.add(lir.node
+                 (Op.SET, arg.type, nthFparam(arg.type, paramFCounter++), arg));
+        } else {
+          listM.add(lir.node
+                  (Op.SET, arg.type, lir.node
+                   (Op.MEM, arg.type, lir.node
+                    (Op.ADD, I64, spreg, lir.iconst(I64, stackOffset))),
+                   arg));
+          stackOffset += 8;
+        }
+        break;
+      case Type.AGGREGATE: 
+        int[] aggrClass = classify(hirType(arg));
+        int i_reg = 0;
+        int f_reg = 0;
+        if (aggrClass[0] == INT_CLASS) i_reg++;
+        if (aggrClass[1] == INT_CLASS) i_reg++;
+        if (aggrClass[0] == SSE) f_reg++;
+        if (aggrClass[1] == SSE) f_reg++;
+        if (aggrClass[0] == MEMORY || (paramICounter + i_reg > MAX_I_REGPARAM)
+                                   || (paramFCounter + f_reg > MAX_F_REGPARAM)) {
+          listM.add(lir.node
+  	       (Op.SET, arg.type, lir.operator
+                 (Op.MEM, arg.type, spreg, ImList.list("&align", "8")), arg));
+          stackOffset += Type.bytes(arg.type);
+        } else { 
+          LirNode newArg;
+          int size;
+          for (int j = 0; j < 2; j++) {
+            if (aggrClass[j] == INT_CLASS) {
+              if (aggrClass[j+2] > 4)
+                 size = I64;
+              else
+                 size = I32;
+              if (j == 0)
+                 newArg = lir.node(Op.MEM, size, arg.kid(0));
+              else
+                 newArg = lir.node(Op.MEM, size, 
+                             lir.node(Op.ADD, I64, arg.kid(0).makeCopy(lir), lir.iconst(I64, 8)));
+              ImList regName = nthIparamReg(size, paramICounter);   /// 2013.7.25
+              listI.add(lir.node
+                     (Op.SET, size, nthIparam(size, paramICounter++), newArg));
+              if (regCallUses.isEmpty())      /// 2013.7.25
+                 regCallUses = new ImList(regName);
+              else
+                 regCallUses = regCallUses.append( new ImList(regName) );
+            }
+            if (aggrClass[j] == SSE) {
+              if (aggrClass[j+2] > 4)
+                 size = F64;
+              else
+                 size = F32;
+              if (j == 0)
+                 newArg = lir.node(Op.MEM, size, arg.kid(0));
+              else
+                 newArg = lir.node(Op.MEM, size, 
+                             lir.node(Op.ADD, I64, arg.kid(0).makeCopy(lir), lir.iconst(I64, 8)));
+              if (regCallUses.isEmpty())
+                regCallUses = new ImList(ImList.list("REG", "F64", "%xmm" + paramFCounter));
+              else
+                regCallUses = regCallUses.append(
+                             new ImList(ImList.list("REG", "F64", "%xmm" + paramFCounter)));
+              listF.add(lir.node
+                     (Op.SET, size, nthFparam(size, paramFCounter++), newArg));
+            }
+          }
+        }
+        break;
+      }
+    } // end for
+  
+    if (attr.allocaCalled && (stackOffset != 0)) {
+       int decr = (stackOffset + 15) & -16;
+       pre.add(lir.node
+                 (Op.SET, I64, spreg, lir.node
+                  (Op.SUB, I64, spreg, lir.iconst(I64, decr))));
+    }
+  
+    pre.concatenate(listM);
+    pre.concatenate(listF);
+    pre.concatenate(listPreI);
+    pre.concatenate(listI);
+  
+    if (maxStackOffset < stackOffset && !attr.allocaCalled)
+       maxStackOffset = stackOffset;
+    numberOfCALLs++;
+  
+      if (isVarArgs(node.kid(0))) {
+          int noOfFloatReg = Math.min(MAX_F_REGPARAM, paramFCounter);
+          pre.add(lir.node
+                 (Op.SET, I32, regnode(I32, "%eax"), lir.iconst(I32, noOfFloatReg)));
+          if (regCallUses.isEmpty())        /// 2013.7.25
+              regCallUses = new ImList(ImList.list("REG", "I32", "%eax"));
+          else
+              regCallUses = regCallUses.append(
+                             new ImList(ImList.list("REG", "I32", "%eax")));
+      }
+  
+    LirNode[] emptyVector = new LirNode[]{};
+    try {
+      LirNode retNode = lir.node(Op.LIST, Type.UNKNOWN, emptyVector);
+      if (retReg != null)
+        retNode = lir.node(Op.LIST, Type.UNKNOWN, retReg);
+      node = lir.node
+        (Op.PARALLEL, Type.UNKNOWN,
+         noRescan
+         (lir.node
+          (Op.CALL, Type.UNKNOWN, node.kid(0),
+           lir.node(Op.LIST, Type.UNKNOWN, emptyVector),
+           retNode)),
+         lir.decodeLir(new ImList("USE", regCallUses), func, module),
+         lir.decodeLir(new ImList("CLOBBER", regCallClobbers), func, module) );
+    } catch (SyntaxError e) {
+      throw new CantHappenException();
+    }
+  
+    if (attr.allocaCalled && (stackOffset != 0)) {
+       int incr = (stackOffset + 15) & -16;
+       post.add(lir.node
+                 (Op.SET, I64, spreg, lir.node
+                  (Op.ADD, I64, spreg, lir.iconst(I64, incr))));
+    }
+  
+    // value returned
+    if (ret != null) {
+      switch (Type.tag(ret.type)) {
+      case Type.INT:
+      case Type.FLOAT:
+        {
+          if (isSimple(ret)) {
+            post.add(lir.node(Op.SET, ret.type, ret, retReg));
+          } else {
+            LirNode tmp = func.newTemp(ret.type);
+            post.add(lir.node(Op.SET, ret.type, tmp, retReg));
+            post.add(lir.node(Op.SET, ret.type, ret, tmp));
+          }
+          break;
+        }
+      case Type.AGGREGATE:
+        if (aggrClass2[0] == MEMORY) // no action needed
+          break;
+        LirNode newAggr;
+        int type;
+        int iCounter = 0;
+        int fCounter = 0;
+        for (int k = 0; k < 2; k++) {
+            if (aggrClass2[k] == INT_CLASS) {
+              if (aggrClass2[k+2] > 4)
+                 type = I64;
+              else
+                 type = I32;
+              if (k == 0)
+                 newAggr = lir.node(Op.MEM, type, ret.kid(0));
+              else
+                 newAggr = lir.node(Op.MEM, type, 
+                             lir.node(Op.ADD, I64, ret.kid(0).makeCopy(lir), lir.iconst(I64, 8)));
+              post.add(lir.node
+                     (Op.SET, type, newAggr, nthIret(type, iCounter++)));
+            }
+            if (aggrClass2[k] == SSE) {
+              if (aggrClass2[k+2] > 4)
+                 type = F64;
+              else
+                 type = F32;
+              if (k == 0)
+                 newAggr = lir.node(Op.MEM, type, ret.kid(0));
+              else
+                 newAggr = lir.node(Op.MEM, type, 
+                             lir.node(Op.ADD, I64, ret.kid(0).makeCopy(lir), lir.iconst(I64, 8)));
+              post.add(lir.node
+                     (Op.SET, type, newAggr, nthFparam(type, fCounter++)));
+            }
+          }
+  
+      }
+    }
+    return node;
+  }
+  
+  
+  /** Postprocess list-form assembler source.
+   ** @param list assembler source in list form. **/
+  void peepHoleOpt(BiList list) {
+  }
+  
+  
+  /** Return floating point memory's size.
+   ** @param arg memory operand list.
+   ** @return "s" for float, "d" for double. **/
+  String floatSizeSuffix(Object arg) {
+    ImList mem = (ImList)arg;
+    if (mem.elem() == "mem") {
+      String size = (String)((ImList)mem).elem2nd();
+      if (size == "float")
+        return "s";
+      else if (size == "double")
+        return "l";    ///// "d" ???
+    }
+    throw new CantHappenException();
+  }
+  
+  
+  
+  /*
+   * Code building macros.
+   */
+  
+  
+  /** Decode SUBREG node. **/
+  Object jmac1(LirNode x) {
+    Symbol reg = ((LirSymRef)x.kid(0)).symbol;
+    int dtype = x.type;
+    int offset = (int)((LirIconst)x.kid(1)).value;
+    if (dtype == I32) {
+      if (offset == 0) {
+        if ( Character.isDigit(reg.name.charAt(2)) )
+           return reg.name.substring(0, reg.name.length() - 1) + "d"; 
+        return "%r" + reg.name.substring(2);
+      }
+    } else if (dtype == I16) {
+      if (offset == 0) {
+        if ( Character.isDigit(reg.name.charAt(2)) )
+           return reg.name.substring(0, reg.name.length() - 1) + "w"; 
+        return "%" + reg.name.substring(2);
+      }
+    } else if (dtype == I8) {
+      int namel = reg.name.length();
+      if (offset == 0) {
+        if ( Character.isDigit(reg.name.charAt(2)) )
+          return reg.name.substring(0, reg.name.length() - 1) + "b";
+        return "%" + reg.name.substring(namel - 2, namel - 1) + "l";
+      }
+      else if (offset == 1)
+        return "%" + reg.name.substring(namel - 2, namel - 1) + "h";
+    } else if (dtype == F32 || dtype == F64) {
+      if (offset == 0)
+        return reg.name;
+    }
+    throw new CantHappenException();
+  }
+  
+  
+  /* Code emission macros.
+   *  Patterns not defined below will be converted to:
+   *   (foo bar baz) --> foo   bar,baz   or foo(bar,baz)
+   */
+  
+  String jmac2(String x, String y) {
+    return emitAfter(x, y);
+  }
+  
+  String emitAfter(String x, String y) {
+    if (x.charAt(x.length() - 1) != ')')
+      return x + "+" + y;
+    else if (x.charAt(0) == '-' || x.charAt(0) == '(')
+      return y + x;
+    else
+      return y + "+" + x;
+  }
+  
+  String jmac3(String x, String y) {
+    if (y.charAt(0) == '-')
+      return x + y;
+    else
+      return x + "+" + y;
+  }
+  
+  String jmac4(String x, String y) {
+    if (y.charAt(0) == '-')
+      return x + "+" + y.substring(1);
+    else
+      return x + "-" + y;
+  }
+  
+  String jmac5(String x) {
+    return "" + (Integer.parseInt(x) - 32);
+  }
+  
+  String jmac6(String x) { return "$" + x; }
+  
+  String jmac7(String x) { return "*" + x; }
+  
+  String jmac8(String type, String x) { return x; }
+  
+  String jmac9(String base) {
+    return base + "(%rip)";
+  }
+  
+  String jmac10(String base) {
+    return base + "@GOTPCREL(%rip)";
+  }
+  
+  String jmac11(String base, String index) {
+    if (index == "") {
+      if ( (base.charAt(base.length() - 1) != ')') && 
+           ( Character.isLetter(base.charAt(0)) || base.charAt(0) == '_') )
+        return base + "(%rip)";
+      return base;
+    }
+    else if (base == "" || base.charAt(base.length() - 1) != ')')
+      return base + "(," + index + ")";
+    else
+      return base.substring(0, base.length() - 1) + "," + index + ")";
+  }
+  
+  String jmac12(String con, String reg) {
+    if (reg == "")
+      return con;
+    else
+      return con + "(" + reg + ")";
+  }
+  
+  String jmac13(String reg, String scale) {
+    if (scale == "1")
+      return reg;
+    else
+      return reg + "," + scale;
+  }
+  
+  /** Return lower half register name. **/
+  String jmac14(String x) {
+     if (Character.isDigit(x.charAt(2)))
+        return x.substring(0, x.length() - 1) + "w";
+     return "%" + x.substring(2); 
+  }
+  
+  /** Return lowest byte register name. **/
+  String jmac15(String x) {
+     if (Character.isDigit(x.charAt(2)))
+        return x.substring(0, x.length() - 1) + "b";
+     if (x.charAt(x.length() - 1) == 'i')
+        return "%" + x.substring(x.length() - 2, x.length()) + "l";
+     return "%" + x.substring(x.length() - 2, x.length() - 1) + "l";
+  }
+  
+  
+  /** Return lower 32bit of memory/register/constant operand. **/
+  String jmac16(String x) {
+    if (x.charAt(0) == '$')
+      return "$" + (Long.parseLong(x.substring(1)) & 0xffffffffL);
+    else if (x.charAt(0) == '%'){
+      if (Character.isDigit(x.charAt(2)))
+        return x + "d";
+      return "%e" + x.substring(2);
+    }
+    else
+      return x;
+  }
+  
+  String jmac17(String x) {
+    if (x.charAt(0) == '%'){
+      if (Character.isDigit(x.charAt(2)))
+        return x.substring(0, x.length() - 1);
+      return "%r" + x.substring(2);
+    }
+    else
+      return x;
+  }
+  
+  String jmac18(String x) {
+    int i = x.indexOf(',');
+    String tail;
+    if (i < 0) {
+       i = x.length();
+       tail ="";
+    } else
+       tail = x.substring(i, x.length());
+    if (Character.isDigit(x.charAt(2))) {
+       return x.substring(0, i-1) + tail;
+    }
+    return "%r" + x.substring(2, i) + tail;
+  }
+  
+  String jmac19(String x) {
+    int i = x.indexOf(')');
+    if (i < 0)
+       return x;
+    if (Character.isDigit(x.charAt(i-2))) {
+      return x.substring(0, i - 1) + ")";
+    } 
+    return x.substring(0, i - 3) + "r" + x.substring(i-2, i+1);
+  }
+  
+  /** Return upper 32bit of memory/register/constant operand. **/
+  String jmac20(String x) {
+    if (x.charAt(0) == '$')
+      return "$" + ((Long.parseLong(x.substring(1)) >> 32) & 0xffffffffL);
+    else if (x.charAt(0) == '%')
+      return x.substring(0, x.length() - 3);
+    else
+      return emitAfter(x, "4");
+  }
+  
+  /** Return expanded 32bit register name.(w to l) **/
+  String jmac21(String x) {
+    if (Character.isDigit(x.charAt(2)))
+       return x.substring(0, x.length() - 1) + "d";
+    return "%e" + x.substring(1);
+  }
+  
+  /** Return expanded 32bit register name.(b to l) **/
+  String jmac22(String x) {
+    if (Character.isDigit(x.charAt(2)))
+       return x.substring(0, x.length() - 1) + "d";
+    if (x.charAt(x.length() - 2) == 'i')
+       return "%e" + x.substring(1,3);
+    return "%e" + x.substring(1,2) + "x";
+  }
+  
+  /** Return expanded 64bit register name.(l to q) **/
+  String jmac23(String x) {
+    if (Character.isDigit(x.charAt(2)))
+       return x.substring(0, x.length() - 1);
+    return "%r" + x.substring(2,4);
+  }
+  
+  /** Return full register name. **/
+  String jmac24(String x){
+    if ((x.charAt(0) == '%') && (x.charAt(x.length() - 1) == 's'))
+      return x.substring(0, x.length() - 1);
+    return x;
+  }
+  
+  /** Generate prologue sequence. **/
+  String jmac25(Object f) {
+    Function func = (Function)f;
+    SaveRegisters saveList = (SaveRegisters)func.require(SaveRegisters.analyzer);
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    int frameSize = frameSize(func); 
+    String seq = "";
+    boolean rbpUsed = (frameSize != 0) || (attr.stackParams != 0) || attr.allocaCalled; 
+    attr.rbpUsed = rbpUsed;
+  
+    boolean odd = false; // number of callee-save registers is odd or not
+    String push = "";
+    for (NumberSet.Iterator it = saveList.calleeSave.iterator(); it.hasNext(); ) {
+      int reg = it.next();
+      push += "\n\tpushq\t" + machineParams.registerToString(reg);
+      odd = !odd;
+    }
+  
+    String varArgs = "";
+    if (attr.varArgFunction) {
+      for (int i = 0; i < 6 - attr.paramIcount; i++)
+        varArgs += STORE_I_REG[i];
+      for (int i = 0; i < 8 - attr.paramFcount; i++)
+        varArgs += STORE_F_REG[i];
+    }
+  
+    if (rbpUsed) {
+      seq = "\tpushq\t%rbp\n" + "\tmovq\t%rsp,%rbp";
+  
+      if (convention == "cygwin" && frameSize > 4000) { // round up frameSize ?
+        seq += "\n\tmovq\t$" + frameSize + ",%rax" +
+               "\n\tcall\t__alloca";
+      } else {
+        if ((attr.stackRequired != 0) && (push != "")) { // !attr.allocaCalled
+          int fSize = (frameSize + 15) & -16; // round up to 16byte boundary
+          if (odd)
+             fSize += 8;
+          if (fSize == 0)
+            seq += push;
+          else
+            seq += "\n\tsubq\t$" + fSize + ",%rsp" + varArgs + push;
+          int cSize = (attr.stackRequired +15) & -16;
+          seq += "\n\tsubq\t$" + cSize + ",%rsp";
+        } else { // (attr.stackRequired == 0) || (push == "") 
+          int fcSize = (frameSize + attr.stackRequired + 15) & -16;
+          if (odd)
+             fcSize += 8;
+          if (fcSize == 0)
+             seq += push;
+          else
+             seq += "\n\tsubq\t$" + fcSize + ",%rsp" + varArgs + push;
+        }
+      }
+    } else { // !rbpUsed == (frameSize == 0) && (attr.stackParams == 0) && !attr.allocaCalled
+      seq = push;
+      if (attr.numberOfCALLs != 0) {
+        int m = (attr.stackRequired + 15) & -16;
+        if (!odd)
+          m += 8;
+        if (m != 0)
+          seq += "\n\tsubq\t$" + m + ",%rsp";
+      }
+    }
+  
+    return seq;
+  }
+  
+  /** Generate epilogue sequence. **/
+  String jmac26(Object f, String rettype) {
+    Function func = (Function)f;
+    SaveRegisters saveList = (SaveRegisters)func.require(SaveRegisters.analyzer);
+    int frameSize = frameSize(func);
+    int size = (frameSize + 15) & -16; // round up to 16byte boundary
+    X86_64Attr attr = (X86_64Attr)getFunctionAttr(func);
+    String pops = "";
+    int n = 0;
+    boolean odd = false; // number of callee-save registers is odd or not
+    for (NumberSet.Iterator it = saveList.calleeSave.iterator(); it.hasNext(); ) {
+      int reg = it.next();
+      pops = "\tpopq\t" + machineParams.registerToString(reg) + "\n" + pops;
+      n += 8;
+      odd = !odd;
+    }
+    String seq = "";
+  //  if (attr.allocaCalled && n != 0)
+    if (attr.rbpUsed){ // (frameSize != 0) || (attr.stackParams != 0) || attr.allocaCalled
+      if ((attr.stackRequired != 0) && (pops != "")) {
+        int fSize = (frameSize + 15) & -16; // round up to 16byte boundary
+        if (odd)
+             fSize += 8; 
+        seq = "\tleaq\t-" + (fSize + n) + "(%rbp),%rsp\n";
+      } else {  // (attr.stackRequired == 0) || (pops == "")
+        if (pops != "") {
+          int fcSize = (frameSize + attr.stackRequired + 15) & -16;
+          if (odd)
+             fcSize += 8;
+          seq = "\tleaq\t-" + (fcSize + n) + "(%rbp),%rsp\n";
+        }
+      }
+    } else { // !rbpUsed, i.e. (frameSize == 0) 
+      if (attr.numberOfCALLs != 0) {
+        int m = (attr.stackRequired + 15) & -16;
+        if (!odd)
+          m += 8;
+        if (m != 0)
+          seq = "\taddq\t$" + m + ",%rsp\n";
+      }
+    }
+  //  return seq + pops + "\tpopq\t%rbp\n\tret";
+    if (attr.rbpUsed)
+       return seq + pops + "\tleave\n\tret";
+    return seq + pops + "\tret";
+  }
+  
+  String jmac27(String con) {
+    return -Integer.parseInt(con) + "";
+  }
+  
+  
+  String jmac28(String x) { return "# line " + x; }
+  
+  String jmac29(String x) { return makeAsmSymbol(x); }
+  
+  
+  String jmac30(String format, Object args) { return emitAsmCode(format, (ImList)args); }
+  
+  
+  /** Emit beginning of segment **/
+  void emitBeginningOfSegment(PrintWriter out, String segment) {
+    if (convention == "mac") {
+      if (segment.equals(".text") || segment.equals(".rodata"))
+        out.println("\t.text");
+      else if (segment.equals(".data"))
+        out.println("\t.data");
+      else
+        out.println("\t.section " + segment);
+    } else
+      out.println("\t.section " + segment);
+  }
+  
+  void emitLinkage(PrintWriter out, SymStatic symbol) {
+    if (symbol.linkage == "XDEF"){
+        out.println("\t.globl\t" + makeAsmSymbol(symbol.name));
+    }
+  }
+  
+  /** Convert symbol to assembler form.
+   **  Prepend "_" when mac or cygwin (COFF), untouched otherwise (ELF). **/
+  String makeAsmSymbol(String symbol) {
+    if (convention == "mac" && symbol.charAt(0) != '.')
+      return "_" + symbol;
+    else
+      return symbol;
+  }
+  
+  public int alignForType(int type) {
+    switch (Type.bytes(type)) {
+    case 1: return 1;
+    case 2: return 2;
+    case 4: return 4;
+    default: return 8;
+    }
+  }
+  
+  String segmentForConst() { return ".rodata"; }
+  
+  /** Emit data **/
+  void emitData(PrintWriter out, int type, LirNode node) {
+    if (type == I64) {
+      if (node instanceof LirIconst){
+        long v = ((LirIconst)node).signedValue();
+        out.println("\t.long\t" + (v & 0xffffffffL)
+                    + "," + ((v >> 32) & 0xffffffffL));
+      } else
+          out.println("\t.quad\t" + lexpConv.convert(node));
+    }
+    else if (type == I32) {
+      out.println("\t.long\t" + lexpConv.convert(node));
+    }
+    else if (type == I16) {
+      out.println("\t.short\t" + ((LirIconst)node).signedValue());
+    }
+    else if (type == I8) {
+      out.println("\t.byte\t" + ((LirIconst)node).signedValue());
+    }
+    else if (type == F64) {
+      double value = ((LirFconst)node).value;
+      long bits = Double.doubleToLongBits(value);
+      out.println("\t.long\t0x" + Long.toString(bits & 0xffffffffL, 16)
+                  + ",0x" + Long.toString((bits >> 32) & 0xffffffffL, 16)
+                  + " /* " + value + " */");
+    }
+    else if (type == F32) {
+      double value = ((LirFconst)node).value;
+      long bits = Float.floatToIntBits((float)value);
+      out.println("\t.long\t0x" + Long.toString(bits & 0xffffffffL, 16)
+                  + " /* " + value + " */");
+    }
+    else {
+      throw new CantHappenException("unknown type: " + type);
+    }
+  }
+  
+  
+  /** Emit data common **/
+  void emitCommon(PrintWriter out, SymStatic symbol, int bytes) {
+    if (symbol.linkage == "LDEF")
+      out.println("\t.lcomm\t" + makeAsmSymbol(symbol.name)
+                  + "," + bytes);
+    else {
+      if (convention == "mac")
+        out.println("\t.comm\t"  + makeAsmSymbol(symbol.name)
+                    + ","  + bytes);
+      else
+        out.println("\t.comm\t"  + makeAsmSymbol(symbol.name)
+                    + ","  + bytes + "," + symbol.boundary);
+    }
+  }
+  
+    /** Emit data zeros **/
+    void emitZeros(PrintWriter out, int bytes) {
+      if (bytes > 0)
+        out.println("\t.space\t" + bytes); /* "\t.skip\t" in CodeGenerator */
+    }
 }
