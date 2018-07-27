@@ -332,6 +332,7 @@ public static final String
            // invoking copy propagation (to decrease register pressure).
   "presr", // Scalar replacement based on Partial Redundancy Elimination.
   "divex3",// Similar to divex but used when SSA scalar replacement is requested.
+  "printflow", // PrintFlow
 }; // LIR_OPT
 //##96 END
 
