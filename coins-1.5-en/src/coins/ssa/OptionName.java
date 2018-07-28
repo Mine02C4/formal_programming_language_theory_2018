@@ -155,7 +155,7 @@ public class OptionName{
 	  if(name==CLEAR_LINE_NUM) return BOTH;
 	  if(name == PRINTFLOW) return NON_SSA;
 	  if(name == PEEPHOLE) return NON_SSA;
-	  if(name == PEEPHOLE2) return NON_SSA;
+	  if(name == PEEPHOLE_CSE) return NON_SSA;
 	  if(name == CONSTANT_FOLDING) return NON_SSA;
 	  return ON_SSA;
   }
@@ -191,6 +191,6 @@ public class OptionName{
   public static final String PRINTFLOW = "printflow";
   /** peep-hole **/
   public static final String PEEPHOLE = "peephole";
-  public static final String PEEPHOLE2 = "peephole2";
+  public static final String PEEPHOLE_CSE = "peephole_cse";
   public static final String CONSTANT_FOLDING = "constant_folding";
 }

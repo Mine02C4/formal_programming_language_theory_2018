@@ -1,5 +1,5 @@
 COINS_DIR := coins-1.5-en
-LIR_OPT := divex/printflow/peephole2/printflow/constant_folding/printflow
+LIR_OPT := divex/printflow/peephole_cse/printflow/constant_folding/printflow
 
 .PHONY: coins test test/test.out
 

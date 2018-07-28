@@ -14,12 +14,12 @@ import coins.backend.cfg.FlowGraph;
 import coins.backend.Op;
 
 // Implement LocalTransformer
-public class PeepHole2 implements LocalTransformer {
+public class PeepHoleCSE implements LocalTransformer {
 
 	private SsaEnvironment env;
 	private SsaSymTab sstab;
 
-	public PeepHole2(SsaEnvironment e, SsaSymTab tab) {
+	public PeepHoleCSE(SsaEnvironment e, SsaSymTab tab) {
 		env = e;
 		sstab = tab;
 	}

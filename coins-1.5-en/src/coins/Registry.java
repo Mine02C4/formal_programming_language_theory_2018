@@ -334,7 +334,7 @@ public static final String
   "divex3",// Similar to divex but used when SSA scalar replacement is requested.
   "printflow", // PrintFlow
   "peephole", // peep-hole
-  "peephole2", // peep-hole2
+  "peephole_cse", // peephole_cse
   "constant_folding" // ConstantFolding
 }; // LIR_OPT
 //##96 END
