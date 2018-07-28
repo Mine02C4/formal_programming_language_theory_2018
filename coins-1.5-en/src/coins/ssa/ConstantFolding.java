@@ -4,7 +4,6 @@ package coins.ssa;
 import coins.backend.LocalTransformer;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import coins.backend.Data;
@@ -48,19 +47,6 @@ public class ConstantFolding implements LocalTransformer {
 
 		for (BiLink bbl = flow.basicBlkList.first(); !bbl.atEnd(); bbl = bbl.next()) {
 			BasicBlk bb = (BasicBlk) bbl.elem();
-
-			@SuppressWarnings("serial")
-			List<Integer> targetOps = new ArrayList<Integer>() {
-				{
-					add(Op.ADD);
-					add(Op.SUB);
-					add(Op.MUL);
-				}
-			};
-
-			// Two continuous statements, "prevNode" and "node", are considered as a
-			// peephole,
-			// where prevNode records an immediately previous node of the node
 			BiLink prevNodel = null;
 			for (BiLink nodel = bb.instrList().first(); !nodel.atEnd(); prevNodel = nodel, nodel = nodel.next()) {
 				LirNode node = (LirNode) nodel.elem();
@@ -83,30 +69,8 @@ public class ConstantFolding implements LocalTransformer {
 						}
 					}
 				}
-				// X <- A * B
-				// If A and B are constant
-				if (node.opCode == Op.SET && targetOps.contains(node.kid(1).opCode)
-						&& (node.kid(1).kid(0).opCode == Op.INTCONST) && (node.kid(1).kid(1).opCode == Op.INTCONST)) {
-					LirIconst lconst = (LirIconst) node.kid(1).kid(0);
-					LirIconst rconst = (LirIconst) node.kid(1).kid(1);
-					long val;
-					switch (node.kid(1).opCode) {
-					case Op.ADD:
-						val = lconst.value + rconst.value;
-						break;
-					case Op.SUB:
-						val = lconst.value - rconst.value;
-						break;
-					case Op.MUL:
-						val = lconst.value * rconst.value;
-						break;
-					default:
-						return false;
-					}
-					LirNode vconst = env.lir.iconst(lconst.type, val);
-					System.out.println(node.toString() + " is ");
-					node.setKid(1, vconst);
-					System.out.println("\treplaced with " + node.toString());
+				if (node.opCode == Op.SET) {
+					node.setKid(1, env.lir.evalTree(node.kid(1)));
 				}
 			}
 		}
