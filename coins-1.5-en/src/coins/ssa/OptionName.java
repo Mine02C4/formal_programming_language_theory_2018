@@ -144,19 +144,20 @@ public class OptionName{
 	  if (name == DDPDE) return NON_SSA;
 	  if (name == EXPDE) return NON_SSA;
   // ******************** End
-	  if(name == CNT) return BOTH;
-	  if(name == CNTBB) return BOTH;
-	  if(name == PBB) return BOTH;
-	  if(name==NUMBERING) return BOTH;
-	  if(name==SET_LINE_NUM) return BOTH;
-	  if(name==INS_LINE_NUM) return BOTH;
-	  if(name==REMOVE_LINE_NUM) return BOTH;
-	  if(name==SHOW_LINE_NUM) return BOTH;
-	  if(name==CLEAR_LINE_NUM) return BOTH;
-	  if(name == PRINTFLOW) return NON_SSA;
-	  if(name == PEEPHOLE) return NON_SSA;
-	  if(name == PEEPHOLE_CSE) return NON_SSA;
-	  if(name == CONSTANT_FOLDING) return NON_SSA;
+	  if (name == CNT) return BOTH;
+	  if (name == CNTBB) return BOTH;
+	  if (name == PBB) return BOTH;
+	  if (name==NUMBERING) return BOTH;
+	  if (name==SET_LINE_NUM) return BOTH;
+	  if (name==INS_LINE_NUM) return BOTH;
+	  if (name==REMOVE_LINE_NUM) return BOTH;
+	  if (name==SHOW_LINE_NUM) return BOTH;
+	  if (name==CLEAR_LINE_NUM) return BOTH;
+	  if (name == PRINTFLOW) return NON_SSA;
+	  if (name == PEEPHOLE) return NON_SSA;
+	  if (name == PEEPHOLE_CSE) return NON_SSA;
+	  if (name == CONSTANT_FOLDING) return NON_SSA;
+	  if (name == AV_CSE) return NON_SSA;
 	  return ON_SSA;
   }
   
@@ -193,4 +194,7 @@ public class OptionName{
   public static final String PEEPHOLE = "peephole";
   public static final String PEEPHOLE_CSE = "peephole_cse";
   public static final String CONSTANT_FOLDING = "constant_folding";
+  
+  /** AV **/
+  public static final String AV_CSE = "av_cse";
 }

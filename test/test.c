@@ -9,9 +9,9 @@ int main() {
     y = y + 3;
     z = y + 3;
     printf("x,y,z = %d, %d, %d\n", x, y, z);
+    z = x + 3;
     x = 3 * 10;
     y = x + 3;
-    z = 1 - 2;
     printf("x,y,z = %d, %d, %d\n", x, y, z);
     return 0;
 }

@@ -21,7 +21,7 @@ import java.util.Vector;
 
 import coins.ssa.BitVector;
 
-public class AV2 implements LocalTransformer {
+public class AV_CSE implements LocalTransformer {
 
 	private SsaEnvironment env;
 	private SsaSymTab sstab;
@@ -41,7 +41,7 @@ public class AV2 implements LocalTransformer {
 		return true;
 	}
 
-	public AV2(SsaEnvironment e, SsaSymTab tab) {
+	public AV_CSE(SsaEnvironment e, SsaSymTab tab) {
 		env = e;
 		sstab = tab;
 	}
