@@ -156,6 +156,7 @@ public class OptionName{
 	  if(name == PRINTFLOW) return NON_SSA;
 	  if(name == PEEPHOLE) return NON_SSA;
 	  if(name == PEEPHOLE2) return NON_SSA;
+	  if(name == CONSTANT_FOLDING) return NON_SSA;
 	  return ON_SSA;
   }
   
@@ -191,4 +192,5 @@ public class OptionName{
   /** peep-hole **/
   public static final String PEEPHOLE = "peephole";
   public static final String PEEPHOLE2 = "peephole2";
+  public static final String CONSTANT_FOLDING = "constant_folding";
 }

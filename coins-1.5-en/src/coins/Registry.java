@@ -335,6 +335,7 @@ public static final String
   "printflow", // PrintFlow
   "peephole", // peep-hole
   "peephole2", // peep-hole2
+  "constant_folding" // ConstantFolding
 }; // LIR_OPT
 //##96 END
 

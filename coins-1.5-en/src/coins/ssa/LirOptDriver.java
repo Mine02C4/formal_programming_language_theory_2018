@@ -382,6 +382,9 @@ public class LirOptDriver  implements LocalTransformer{
 	    else if(name.equals(OptionName.PEEPHOLE2)){
 	      lt=new PeepHole2(env, sstab);
 	    }
+	    else if(name.equals(OptionName.CONSTANT_FOLDING)){
+	      lt=new ConstantFolding(env, sstab);
+	    }
 	    else{
 	      System.err.println("LirOptDriver.java : unexpected optimizer name "+name);
 	    }
