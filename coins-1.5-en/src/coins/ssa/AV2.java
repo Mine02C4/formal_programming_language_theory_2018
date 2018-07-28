@@ -53,9 +53,9 @@ public class AV2 implements LocalTransformer {
 
 	// The variable is used for determining a bit location of each expression on
 	// For getting the bit location corresponding to a LirNode
-	Hashtable<LirNode, Integer> id2exp;
+	Hashtable<LirNode, Integer> exp2id;
 	// For getting the LirNode corresponding to a bit location
-	private Vector<LirNode> exp2id;
+	private Vector<LirNode> id2exp;
 	// For recording MEM nodes
 	private Vector<Integer> memq;
 
@@ -102,11 +102,11 @@ public class AV2 implements LocalTransformer {
 
 						// Getting a bit location from an expression. If it has not been set yet, set
 						// it.
-						Integer id = (Integer) id2exp.get(exp);
+						Integer id = (Integer) exp2id.get(exp);
 						if (id == null) {
-							id = new Integer(exp2id.size());
-							id2exp.put(exp, id);
-							exp2id.add(exp);
+							id = new Integer(id2exp.size());
+							exp2id.put(exp, id);
+							id2exp.add(exp);
 
 							// Generateing the temporary symbol for expression exp through the newSsaSymbol
 							// of SsaSymTab, and
@@ -154,7 +154,7 @@ public class AV2 implements LocalTransformer {
 							&& node.kid(1).opCode != Op.REG && node.kid(1).opCode != Op.CALL
 							&& node.kid(1).opCode != Op.USE && node.kid(1).opCode != Op.CLOBBER) {
 						LirNode exp = node.kid(1);
-						Integer id = (Integer) id2exp.get(exp);
+						Integer id = (Integer) exp2id.get(exp);
 						int index = id.intValue();
 
 						// If gen has been set already,
@@ -169,8 +169,8 @@ public class AV2 implements LocalTransformer {
 					}
 					// Search expressions including a variable assigned by the node,
 					// and then, set kills of the expressions, and reset gens of them
-					for (int i = 0; !isRemoved && i < exp2id.size(); i++) {
-						LirNode exp = exp2id.elementAt(i);
+					for (int i = 0; !isRemoved && i < id2exp.size(); i++) {
+						LirNode exp = id2exp.elementAt(i);
 
 						BiList operands = util.findTargetLir(exp, Op.REG, new BiList());
 						for (BiLink q = operands.first(); !q.atEnd(); q = q.next()) {
@@ -208,8 +208,8 @@ public class AV2 implements LocalTransformer {
 				if (node.kid(2).nKids() > 0 && node.kid(2).kid(0).opCode == Op.REG) {
 					Symbol returnS = ((LirSymRef) node.kid(2).kid(0)).symbol;
 
-					for (int i = 0; i < exp2id.size(); i++) {
-						LirNode exp = exp2id.elementAt(i);
+					for (int i = 0; i < id2exp.size(); i++) {
+						LirNode exp = id2exp.elementAt(i);
 						BiList operands = util.findTargetLir(exp, Op.REG, new BiList());
 						for (BiLink q = operands.first(); !q.atEnd(); q = q.next()) {
 							LirNode reg = (LirNode) q.elem();
@@ -241,7 +241,7 @@ public class AV2 implements LocalTransformer {
 			gen[v.id].vectorOr(out[v.id], out[v.id]);
 
 			// If "out" includes bit value 0, push it on stack.
-			BitVector notOut = new BitVector(exp2id.size());
+			BitVector notOut = new BitVector(id2exp.size());
 			out[v.id].vectorNot(notOut);
 			if (!notOut.isEmpty()) {
 				stack.push(v);
@@ -267,7 +267,7 @@ public class AV2 implements LocalTransformer {
 				// in[succ.id].vectorAnd(out[v.id], in[succ.id]);
 
 				// Calculate "out" from "in" of the successor
-				BitVector newOut = new BitVector(exp2id.size());
+				BitVector newOut = new BitVector(id2exp.size());
 				in[succ.id].vectorSub(kill[succ.id], newOut);
 				newOut.vectorOr(gen[succ.id], newOut);
 				// If any changes exists in "out",
@@ -286,7 +286,7 @@ public class AV2 implements LocalTransformer {
 		for (BiLink bb = f.flowGraph().basicBlkList.first(); !bb.atEnd(); bb = bb.next()) {
 			BasicBlk v = (BasicBlk) bb.elem();
 
-			initGenKill(v, in[v.id], new BitVector(exp2id.size()));
+			initGenKill(v, in[v.id], new BitVector(id2exp.size()));
 		}
 	}
 
@@ -296,8 +296,8 @@ public class AV2 implements LocalTransformer {
 		util = new Util(env, f);
 
 		stack = new Stack<BasicBlk>();
-		id2exp = new Hashtable<LirNode, Integer>();
-		exp2id = new Vector<LirNode>();
+		exp2id = new Hashtable<LirNode, Integer>();
+		id2exp = new Vector<LirNode>();
 		memq = new Vector<Integer>();
 		tmpPool = new Vector<Symbol>();
 
@@ -311,10 +311,10 @@ public class AV2 implements LocalTransformer {
 		collectExp();
 
 		for (int i = 0; i < f.flowGraph().idBound(); i++) {
-			gen[i] = new BitVector(exp2id.size());
-			kill[i] = new BitVector(exp2id.size());
-			in[i] = new BitVector(exp2id.size());
-			out[i] = new BitVector(exp2id.size());
+			gen[i] = new BitVector(id2exp.size());
+			kill[i] = new BitVector(id2exp.size());
+			in[i] = new BitVector(id2exp.size());
+			out[i] = new BitVector(id2exp.size());
 		}
 
 		init();
