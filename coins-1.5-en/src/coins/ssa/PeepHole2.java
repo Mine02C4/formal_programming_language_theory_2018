@@ -25,7 +25,7 @@ public class PeepHole2 implements LocalTransformer {
 	}
 
 	public String name() {
-		return "PeepHole";
+		return "PeepHole2";
 	}
 
 	public String subject() {
@@ -42,10 +42,6 @@ public class PeepHole2 implements LocalTransformer {
 
 		for (BiLink bbl = flow.basicBlkList.first(); !bbl.atEnd(); bbl = bbl.next()) {
 			BasicBlk bb = (BasicBlk) bbl.elem();
-
-			// Two continuous statements, "prevNode" and "node", are considered as a
-			// peephole,
-			// where prevNode records an immediately previous node of the node
 			BiLink prevNodel = null;
 			for (BiLink nodel = bb.instrList().first(); !nodel.atEnd(); prevNodel = nodel, nodel = nodel.next()) {
 				if (prevNodel != null) {
@@ -78,6 +74,5 @@ public class PeepHole2 implements LocalTransformer {
 
 		// The last of "doIt" returns true.
 		return (true);
-
 	}
 }
