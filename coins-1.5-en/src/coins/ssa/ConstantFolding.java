@@ -49,49 +49,64 @@ public class ConstantFolding implements LocalTransformer {
 		for (BiLink bbl = flow.basicBlkList.first(); !bbl.atEnd(); bbl = bbl.next()) {
 			BasicBlk bb = (BasicBlk) bbl.elem();
 
+			@SuppressWarnings("serial")
+			List<Integer> targetOps = new ArrayList<Integer>() {
+				{
+					add(Op.ADD);
+					add(Op.SUB);
+					add(Op.MUL);
+				}
+			};
+
 			// Two continuous statements, "prevNode" and "node", are considered as a
 			// peephole,
 			// where prevNode records an immediately previous node of the node
 			BiLink prevNodel = null;
 			for (BiLink nodel = bb.instrList().first(); !nodel.atEnd(); prevNodel = nodel, nodel = nodel.next()) {
+				LirNode node = (LirNode) nodel.elem();
 				if (prevNodel != null) {
-					LirNode node = (LirNode) nodel.elem();
 					LirNode prevNode = (LirNode) prevNodel.elem();
-
-					@SuppressWarnings("serial")
-					List<Integer> targetOps = new ArrayList<Integer>() {
-						{
-							add(Op.ADD);
-							add(Op.SUB);
-							add(Op.MUL);
+					if (node.opCode == Op.SET && prevNode.opCode == Op.SET && prevNode.kid(1).opCode == Op.INTCONST) {
+						for (int i = 0; i < node.kid(1).nKids(); i++) {
+							if (node.kid(1).kid(i).equals(prevNode.kid(0))) {
+								System.out.println(node.toString() + " is ");
+								node.kid(1).setKid(i, prevNode.kid(1));
+								System.out.println("\treplaced with " + node.toString());
+							}
+							for (int j = 0; j < node.kid(1).kid(i).nKids(); j++) {
+								if (node.kid(1).kid(i).kid(j).equals(prevNode.kid(0))) {
+									System.out.println(node.toString() + " is ");
+									node.kid(1).kid(i).setKid(j, prevNode.kid(1));
+									System.out.println("\treplaced with " + node.toString());
+								}
+							}
 						}
-					};
-					// X <- A * B
-					// If A and B are constant
-					if (node.opCode == Op.SET && targetOps.contains(node.kid(1).opCode)
-							&& (node.kid(1).kid(0).opCode == Op.INTCONST)
-							&& (node.kid(1).kid(1).opCode == Op.INTCONST)) {
-						LirIconst lconst = (LirIconst) node.kid(1).kid(0);
-						LirIconst rconst = (LirIconst) node.kid(1).kid(1);
-						long val;
-						switch (node.kid(1).opCode) {
-						case Op.ADD:
-							val = lconst.value + rconst.value;
-							break;
-						case Op.SUB:
-							val = lconst.value - rconst.value;
-							break;
-						case Op.MUL:
-							val = lconst.value * rconst.value;
-							break;
-						default:
-							return false;
-						}
-						LirNode vconst = env.lir.iconst(lconst.type, val);
-						System.out.println(node.toString() + " is ");
-						node.setKid(1, vconst);
-						System.out.println("\treplaced with " + node.toString());
 					}
+				}
+				// X <- A * B
+				// If A and B are constant
+				if (node.opCode == Op.SET && targetOps.contains(node.kid(1).opCode)
+						&& (node.kid(1).kid(0).opCode == Op.INTCONST) && (node.kid(1).kid(1).opCode == Op.INTCONST)) {
+					LirIconst lconst = (LirIconst) node.kid(1).kid(0);
+					LirIconst rconst = (LirIconst) node.kid(1).kid(1);
+					long val;
+					switch (node.kid(1).opCode) {
+					case Op.ADD:
+						val = lconst.value + rconst.value;
+						break;
+					case Op.SUB:
+						val = lconst.value - rconst.value;
+						break;
+					case Op.MUL:
+						val = lconst.value * rconst.value;
+						break;
+					default:
+						return false;
+					}
+					LirNode vconst = env.lir.iconst(lconst.type, val);
+					System.out.println(node.toString() + " is ");
+					node.setKid(1, vconst);
+					System.out.println("\treplaced with " + node.toString());
 				}
 			}
 		}
