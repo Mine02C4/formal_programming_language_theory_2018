@@ -385,6 +385,9 @@ public class LirOptDriver  implements LocalTransformer{
 	    else if(name.equals(OptionName.CONSTANT_FOLDING)){
 	      lt=new ConstantFolding(env, sstab);
 	    }
+	    else if(name.equals(OptionName.AV)){
+	      lt=new AV(env, sstab);
+	    }
 	    else if(name.equals(OptionName.AV_CSE)){
 	      lt=new AV_CSE(env, sstab);
 	    }

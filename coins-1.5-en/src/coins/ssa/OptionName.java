@@ -157,6 +157,7 @@ public class OptionName{
 	  if (name == PEEPHOLE) return NON_SSA;
 	  if (name == PEEPHOLE_CSE) return NON_SSA;
 	  if (name == CONSTANT_FOLDING) return NON_SSA;
+	  if (name == AV) return NON_SSA;
 	  if (name == AV_CSE) return NON_SSA;
 	  return ON_SSA;
   }
@@ -196,5 +197,6 @@ public class OptionName{
   public static final String CONSTANT_FOLDING = "constant_folding";
   
   /** AV **/
+  public static final String AV = "av";
   public static final String AV_CSE = "av_cse";
 }

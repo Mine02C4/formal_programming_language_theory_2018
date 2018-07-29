@@ -336,6 +336,7 @@ public static final String
   "peephole", // peep-hole
   "peephole_cse", // peephole_cse
   "constant_folding", // ConstantFolding
+  "av",
   "av_cse", // av_cse
 }; // LIR_OPT
 //##96 END
