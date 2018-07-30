@@ -31,7 +31,7 @@ public class AV_CSE implements LocalTransformer {
 	private String prefixOfTmp = "_av";
 
 	public String name() {
-		return "AV";
+		return "AV_CSE";
 	}
 
 	public String subject() {
@@ -314,40 +314,40 @@ public class AV_CSE implements LocalTransformer {
 		f.flowGraph().touch();
 		return (true);
 	}
-}
 
-class ExpMap {
-	// The variable is used for determining a bit location of each expression on
-	// For getting the bit location corresponding to a LirNode
-	Hashtable<LirNode, Integer> exp2id;
-	// For getting the LirNode corresponding to a bit location
-	private List<LirNode> id2exp;
+	class ExpMap {
+		// The variable is used for determining a bit location of each expression on
+		// For getting the bit location corresponding to a LirNode
+		Hashtable<LirNode, Integer> exp2id;
+		// For getting the LirNode corresponding to a bit location
+		private List<LirNode> id2exp;
 
-	public ExpMap() {
-		exp2id = new Hashtable<LirNode, Integer>();
-		id2exp = new ArrayList<LirNode>();
-	}
-
-	Integer getId(LirNode exp) {
-		return (Integer) exp2id.get(exp);
-	}
-
-	Integer AddExp(LirNode exp) throws Exception {
-		if (getId(exp) != null) {
-			throw new Exception();
-		} else {
-			Integer id = new Integer(id2exp.size());
-			exp2id.put(exp, id);
-			id2exp.add(exp);
-			return id;
+		public ExpMap() {
+			exp2id = new Hashtable<LirNode, Integer>();
+			id2exp = new ArrayList<LirNode>();
 		}
-	}
 
-	int getSize() {
-		return id2exp.size();
-	}
+		Integer getId(LirNode exp) {
+			return (Integer) exp2id.get(exp);
+		}
 
-	LirNode getById(int id) {
-		return id2exp.get(id);
+		Integer AddExp(LirNode exp) throws Exception {
+			if (getId(exp) != null) {
+				throw new Exception();
+			} else {
+				Integer id = new Integer(id2exp.size());
+				exp2id.put(exp, id);
+				id2exp.add(exp);
+				return id;
+			}
+		}
+
+		int getSize() {
+			return id2exp.size();
+		}
+
+		LirNode getById(int id) {
+			return id2exp.get(id);
+		}
 	}
 }
