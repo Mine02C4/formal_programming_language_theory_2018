@@ -18,7 +18,6 @@ import coins.backend.util.*;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Stack;
 import java.util.Vector;
 
 import coins.ssa.BitVector;
@@ -71,9 +70,6 @@ public class AV_CSE implements LocalTransformer {
 
 	// For getting the temporary corresponding to a bit location of an expression
 	Vector<Symbol> tmpPool;
-
-	// Used as a worklist
-	private Stack<BasicBlk> stack;
 
 	boolean IsTargetExpression(LirNode exp) {
 		return exp.opCode != Op.INTCONST && exp.opCode != Op.FLOATCONST && exp.opCode != Op.REG && exp.opCode != Op.CALL
@@ -236,45 +232,41 @@ public class AV_CSE implements LocalTransformer {
 			// Calculate "out" from "in" for each basic block.
 			in[v.id].vectorSub(kill[v.id], out[v.id]);
 			gen[v.id].vectorOr(out[v.id], out[v.id]);
-
-			// If "out" includes bit value 0, push it on stack.
-			BitVector notOut = new BitVector(expMap.getSize());
-			out[v.id].vectorNot(notOut);
-			if (!notOut.isEmpty()) {
-				stack.push(v);
-			}
 		}
 	}
 
 	void settle() {
-		// pop a candidate to be processed from the stack,
-		while (!stack.empty()) {
-			BasicBlk v = (BasicBlk) stack.pop();
-			for (BiLink ss = v.succList().first(); !ss.atEnd(); ss = ss.next()) {
-				BasicBlk succ = (BasicBlk) ss.elem();
-				// Propagating information to each successor
-				for (BiLink pp = succ.predList().first(); !pp.atEnd(); pp = pp.next()) {
-					BasicBlk pred = (BasicBlk) pp.elem();
-					in[succ.id].vectorAnd(out[pred.id], in[succ.id]);
-				}
-				// To be precise, the For-statement is not necessary for the maximal solution of
-				// a dataflow equation.
-				// Instead, it can be described as the folloing single statement:
-				//
-				// in[succ.id].vectorAnd(out[v.id], in[succ.id]);
+		boolean changed;
+		do {
+			changed = false;
+			for (BiLink bb = f.flowGraph().basicBlkList.first(); !bb.atEnd(); bb = bb.next()) {
+				BasicBlk v = (BasicBlk) bb.elem();
+				for (BiLink ss = v.succList().first(); !ss.atEnd(); ss = ss.next()) {
+					BasicBlk succ = (BasicBlk) ss.elem();
+					// Propagating information to each successor
+					for (BiLink pp = succ.predList().first(); !pp.atEnd(); pp = pp.next()) {
+						BasicBlk pred = (BasicBlk) pp.elem();
+						in[succ.id].vectorAnd(out[pred.id], in[succ.id]);
+					}
+					// To be precise, the For-statement is not necessary for the maximal solution of
+					// a dataflow equation.
+					// Instead, it can be described as the folloing single statement:
+					//
+					// in[succ.id].vectorAnd(out[v.id], in[succ.id]);
 
-				// Calculate "out" from "in" of the successor
-				BitVector newOut = new BitVector(expMap.getSize());
-				in[succ.id].vectorSub(kill[succ.id], newOut);
-				newOut.vectorOr(gen[succ.id], newOut);
-				// If any changes exists in "out",
-				// the successor become a candidate to be processed.
-				if (!out[succ.id].vectorEqual(newOut)) {
-					out[succ.id] = newOut;
-					stack.push(succ);
+					// Calculate "out" from "in" of the successor
+					BitVector newOut = new BitVector(expMap.getSize());
+					in[succ.id].vectorSub(kill[succ.id], newOut);
+					newOut.vectorOr(gen[succ.id], newOut);
+					// If any changes exists in "out",
+					// the successor become a candidate to be processed.
+					if (!out[succ.id].vectorEqual(newOut)) {
+						out[succ.id] = newOut;
+						changed = true;
+					}
 				}
 			}
-		}
+		} while (changed);
 	}
 
 	void update() {
@@ -292,7 +284,6 @@ public class AV_CSE implements LocalTransformer {
 		f = function;
 		util = new Util(env, f);
 
-		stack = new Stack<BasicBlk>();
 		expMap = new ExpMap();
 		memq = new Vector<Integer>();
 		tmpPool = new Vector<Symbol>();
