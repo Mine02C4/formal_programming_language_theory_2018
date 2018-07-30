@@ -338,6 +338,8 @@ public static final String
   "constant_folding", // ConstantFolding
   "av",
   "av_cse", // av_cse
+  "ssa_cse",
+  "my_dce",
 }; // LIR_OPT
 //##96 END
 

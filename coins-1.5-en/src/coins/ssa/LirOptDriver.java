@@ -391,6 +391,12 @@ public class LirOptDriver  implements LocalTransformer{
 	    else if(name.equals(OptionName.AV_CSE)){
 	      lt=new AV_CSE(env, sstab);
 	    }
+	    else if(name.equals(OptionName.SSA_CSE)){
+	      lt=new SsaCSE(env, sstab);
+	    }
+	    else if(name.equals(OptionName.MY_DCE)){
+	      lt=new MyDCE(env, sstab);
+	    }
 	    else{
 	      System.err.println("LirOptDriver.java : unexpected optimizer name "+name);
 	    }

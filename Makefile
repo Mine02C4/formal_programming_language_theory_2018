@@ -3,7 +3,7 @@ LIR_OPT := divex/printflow/peephole_cse/printflow/constant_folding/printflow
 AV1_LIR_OPT := divex/printflow/av/printflow
 AV2_LIR_OPT := divex/printflow/av_cse/printflow
 
-.PHONY: coins test test/*
+.PHONY: coins test test_ssa test/*
 
 coins:
 	cd $(COINS_DIR) && ./build.sh
@@ -30,4 +30,13 @@ test/test_av2.out: test/test.c
 	java -classpath $(COINS_DIR)/classes coins.driver.Driver \
 		-I$(COINS_DIR)/lang/c/include -I$(COINS_DIR)/lang/c/include/samples \
 		$< -coins:assembler=as,target=x86_64,lir-opt=$(AV2_LIR_OPT) -o $@
+
+test_ssa: test_ssa.out
+	./$<
+
+test_ssa.out: OPT := printflow/prun/ssa_cse/srd3/printflow
+test_ssa.out: test/test.c
+	java -classpath $(COINS_DIR)/classes coins.driver.Driver \
+		-I$(COINS_DIR)/lang/c/include -I$(COINS_DIR)/lang/c/include/samples \
+		$< -coins:assembler=as,target=x86_64,lir-opt=$(OPT) -o $@
 

@@ -199,4 +199,8 @@ public class OptionName{
   /** AV **/
   public static final String AV = "av";
   public static final String AV_CSE = "av_cse";
+  
+  /** SSA **/
+  public static final String SSA_CSE = "ssa_cse";
+  public static final String MY_DCE = "my_dce";
 }
