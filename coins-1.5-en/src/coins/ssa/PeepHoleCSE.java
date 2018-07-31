@@ -37,7 +37,6 @@ public class PeepHoleCSE implements LocalTransformer {
 	}
 
 	public boolean doIt(Function function, ImList args) {
-		// making a control graph.
 		FlowGraph flow = function.flowGraph();
 
 		for (BiLink bbl = flow.basicBlkList.first(); !bbl.atEnd(); bbl = bbl.next()) {
@@ -47,8 +46,6 @@ public class PeepHoleCSE implements LocalTransformer {
 				if (prevNodel != null) {
 					LirNode node = (LirNode) nodel.elem();
 					LirNode prevNode = (LirNode) prevNodel.elem();
-
-					// X <- A * B
 					if (node.opCode == Op.SET && prevNode.opCode == Op.SET) {
 						if (node.kid(1).equals(prevNode.kid(1))) {
 							boolean can = true;
