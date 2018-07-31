@@ -10,28 +10,18 @@ import coins.backend.cfg.*;
 import coins.backend.lir.*;
 
 import coins.backend.Op;
-import coins.backend.Type;
-import coins.backend.sym.Symbol;
 
 import coins.backend.util.*;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.List;
+import java.util.Stack;
 import java.util.Vector;
-
-import coins.ssa.BitVector;
 
 public class MyDCE implements LocalTransformer {
 
 	private SsaEnvironment env;
 	private SsaSymTab sstab;
 
-	// A prefix for temoraries
-	private String prefixOfTmp = "_av";
-	
-	HashSet<LirNode> available_node;
+	Stack<BiLink> works;
 
 	public String name() {
 		return "My Dead Code Elimination";
@@ -52,97 +42,76 @@ public class MyDCE implements LocalTransformer {
 
 	private Function f;
 
-	// Util includes convenient methods
-	private Util util;
+	class PickUpUsedNode implements PickUpVariable {
+		private Vector<LirNode> nlist;
 
+		PickUpUsedNode() {
+			nlist = new Vector<>();
+		}
 
-	// For recording MEM nodes
-	private Vector<Integer> memq;
+		public void meetVar(LirNode node) {
+			if (!nlist.contains(node))
+				nlist.addElement(node);
+		}
 
-	// BitVector represents a bit-vector.
-	// In addition to methods getBit(i) extracting value of ith bit as a integer
-	// value,
-	// setBit(i) setting ith bit to 1, and resetBit(i) setting ith bit to 0,
-	// you can use method vectorAnd for "and" operation, vectorOr for "or"
-	// operation, vectorNot for "not" operation
-	BitVector[] gen;
-	BitVector[] kill;
-	BitVector[] in;
-	BitVector[] out;
+		boolean isEmpty() {
+			return nlist.isEmpty();
+		}
 
-	// For getting the temporary corresponding to a bit location of an expression
-	Vector<Symbol> tmpPool;
-
-	boolean IsTargetExpression(LirNode exp) {
-		return exp.opCode != Op.INTCONST && exp.opCode != Op.FLOATCONST && exp.opCode != Op.REG && exp.opCode != Op.CALL
-				&& exp.opCode != Op.USE && exp.opCode != Op.CLOBBER;
-	}
-
-	// Performing the followings while searching all the expressions:
-	// 1. determining a bit location of each expression,
-	// and recording an association between the expression and the bit location in
-	// id2exp and exp2id respectively.
-	// 2. splitting x = e into t = e; x = t introducing a temporary t, which is
-	// recorded in tempPool.
-	void collectExp() {
-	}
-
-	// Composing gen and kill of a basic block from gen and kill of each
-	// statement
-	// In addition, common sub-expressions are eliminated within the basic block.
-	void initGenKill(BasicBlk bb, BitVector gen, BitVector kill) {
-	}
-
-	void init() {
-		for (BiLink bb = f.flowGraph().basicBlkList.first(); !bb.atEnd(); bb = bb.next()) {
-			BasicBlk v = (BasicBlk) bb.elem();
-			initGenKill(v, gen[v.id], kill[v.id]);
-
-			// Set all bits of "in" for each basic block except a start node.
-			if (v != f.flowGraph().entryBlk())
-				in[v.id].vectorNot(in[v.id]);
-
-			// Calculate "out" from "in" for each basic block.
-			in[v.id].vectorSub(kill[v.id], out[v.id]);
-			gen[v.id].vectorOr(out[v.id], out[v.id]);
+		boolean contains(LirNode node) {
+			return nlist.contains(node);
 		}
 	}
 
-	void update() {
-		// Transform a program
-
-		for (BiLink bb = f.flowGraph().basicBlkList.first(); !bb.atEnd(); bb = bb.next()) {
-			BasicBlk v = (BasicBlk) bb.elem();
-
+	boolean isUsed(LirNode target_node) {
+		if (target_node.opCode == Op.SET) {
+			LirNode tnode = target_node.kid(0);
+			for (BiLink bb = f.flowGraph().basicBlkList.first(); !bb.atEnd(); bb = bb.next()) {
+				BasicBlk v = (BasicBlk) bb.elem();
+				for (BiLink nodel = v.instrList().first(); !nodel.atEnd(); nodel = nodel.next()) {
+					LirNode node = (LirNode) nodel.elem();
+					PickUpUsedNode un = new PickUpUsedNode();
+					node.pickUpUses(un);
+					if (!un.isEmpty() && un.contains(tnode)) {
+						return true;
+					}
+				}
+			}
 		}
+		return false;
+	}
+
+	boolean isMemoryInst(LirNode node) {
+		if (node.opCode == Op.SET) {
+			if (node.kid(0).opCode == Op.MEM || node.kid(1).opCode == Op.MEM) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public boolean doIt(Function function, ImList args) {
-
+		works = new Stack<>();
 		f = function;
-		util = new Util(env, f);
 
-		memq = new Vector<Integer>();
-		tmpPool = new Vector<Symbol>();
-
-		try {
-			collectExp();
-		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
+		for (BiLink bb = f.flowGraph().basicBlkList.first(); !bb.atEnd(); bb = bb.next()) {
+			BasicBlk v = (BasicBlk) bb.elem();
+			for (BiLink nodel = v.instrList().first(); !nodel.atEnd(); nodel = nodel.next()) {
+				works.push(nodel);
+			}
 		}
-
-		int idBound = f.flowGraph().idBound();
-		kill = new BitVector[idBound];
-		gen = new BitVector[idBound];
-		in = new BitVector[idBound];
-		out = new BitVector[idBound];
-
-		init();
-		update();
+		while (!works.empty()) {
+			BiLink nodel = works.pop();
+			LirNode node = (LirNode) nodel.elem();
+			// load, store, call, return, or branch
+			if (isUsed(node) || node.isBranch() || node.opCode == Op.CALL || node.opCode == Op.EPILOGUE
+					|| node.opCode == Op.PROLOGUE || isMemoryInst(node)) {
+				continue;
+			}
+			nodel.unlink();
+		}
 
 		f.flowGraph().touch();
 		return (true);
 	}
 }
-

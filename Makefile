@@ -34,7 +34,7 @@ test/test_av2.out: test/test.c
 test_ssa: test_ssa.out
 	./$<
 
-test_ssa.out: OPT := printflow/prun/ssa_cse/srd3/printflow
+test_ssa.out: OPT := printflow/prun/my_dce/srd3/printflow
 test_ssa.out: test/test.c
 	java -classpath $(COINS_DIR)/classes coins.driver.Driver \
 		-I$(COINS_DIR)/lang/c/include -I$(COINS_DIR)/lang/c/include/samples \
