@@ -382,6 +382,9 @@ public class LirOptDriver  implements LocalTransformer{
 	    else if(name.equals(OptionName.PEEPHOLE_CSE)){
 	      lt=new PeepHoleCSE(env, sstab);
 	    }
+	    else if(name.equals(OptionName.PEEPHOLE_DCE)){
+	      lt=new PeepHoleDCE(env, sstab);
+	    }
 	    else if(name.equals(OptionName.CONSTANT_FOLDING)){
 	      lt=new ConstantFolding(env, sstab);
 	    }

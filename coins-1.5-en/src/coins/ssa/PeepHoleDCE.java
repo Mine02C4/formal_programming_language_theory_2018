@@ -14,18 +14,18 @@ import coins.backend.cfg.FlowGraph;
 import coins.backend.Op;
 
 // Implement LocalTransformer
-public class PeepHoleCSE implements LocalTransformer {
+public class PeepHoleDCE implements LocalTransformer {
 
 	private SsaEnvironment env;
 	private SsaSymTab sstab;
 
-	public PeepHoleCSE(SsaEnvironment e, SsaSymTab tab) {
+	public PeepHoleDCE(SsaEnvironment e, SsaSymTab tab) {
 		env = e;
 		sstab = tab;
 	}
 
 	public String name() {
-		return "PeepHoleCSE";
+		return "PeepHoleDCE";
 	}
 
 	public String subject() {
@@ -49,19 +49,20 @@ public class PeepHoleCSE implements LocalTransformer {
 					LirNode prevNode = (LirNode) prevNodel.elem();
 
 					// X <- A * B
+					// Y <- C * D
+					// if X == Y and X != C and X != D then delete X
 					if (node.opCode == Op.SET && prevNode.opCode == Op.SET) {
-						if (node.kid(1).equals(prevNode.kid(1))) {
+						if (node.kid(0).equals(prevNode.kid(0))) {
 							boolean can = true;
-							for (int i = 0; i < prevNode.kid(1).nKids(); i++) {
-								if (prevNode.kid(1).kid(i).equals(prevNode.kid(0))) {
+							for (int i = 0; i < node.kid(1).nKids(); i++) {
+								if (prevNode.kid(0).equals(node.kid(1).kid(i))) {
 									can = false;
 									break;
 								}
 							}
 							if (can) {
-								System.out.println(node.toString() + " is ");
-								node.setKid(1, prevNode.kid(0).makeCopy(env.lir));
-								System.out.println("\treplaced with " + node.toString());
+								System.out.println("Delete " + prevNode.toString());
+								prevNodel.unlink();
 							}
 						}
 					}

@@ -3,7 +3,10 @@ LIR_OPT := divex/printflow/peephole_cse/printflow/constant_folding/printflow
 AV1_LIR_OPT := divex/printflow/av/printflow
 AV2_LIR_OPT := divex/printflow/av_cse/printflow
 
-.PHONY: coins test test_ssa test/*
+CC := java -classpath $(COINS_DIR)/classes coins.driver.driver
+CFLAGS := -I$(COINS_DIR)/lang/c/include -I$(COINS_DIR)/lang/c/include/samples
+
+.PHONY: coins test test_* test/*
 
 coins:
 	cd $(COINS_DIR) && ./build.sh
@@ -16,7 +19,13 @@ test_av: test/test_av1.out test/test_av2.out
 	./test/test_av2.out | tee test_av2.txt
 	diff test_av1.txt test_av2.txt
 
+test/test.log: test/test.out
+	$< > $@
+
 test/test.out: test/test.c
+	gcc $< -o $@
+
+test/test2.out: test/test.c
 	java -classpath $(COINS_DIR)/classes coins.driver.Driver \
 		-I$(COINS_DIR)/lang/c/include -I$(COINS_DIR)/lang/c/include/samples \
 		$< -coins:assembler=as,target=x86_64,lir-opt=$(LIR_OPT) -o $@
@@ -31,11 +40,21 @@ test/test_av2.out: test/test.c
 		-I$(COINS_DIR)/lang/c/include -I$(COINS_DIR)/lang/c/include/samples \
 		$< -coins:assembler=as,target=x86_64,lir-opt=$(AV2_LIR_OPT) -o $@
 
-test_ssa: test_ssa.out
+test_ssa: test/test_ssa.out
 	./$<
 
-test_ssa.out: OPT := printflow/prun/my_dce/srd3/printflow
-test_ssa.out: test/test.c
+test/test_ssa.out: OPT := printflow/prun/my_dce/srd3/printflow
+test/test_ssa.out: test/test.c
+	java -classpath $(COINS_DIR)/classes coins.driver.Driver \
+		-I$(COINS_DIR)/lang/c/include -I$(COINS_DIR)/lang/c/include/samples \
+		$< -coins:assembler=as,target=x86_64,lir-opt=$(OPT) -o $@
+
+test_phdce: test/test_phdce.out test/test.log
+	./$< | tee test/test_phdce.log
+	diff test/test.log test/test_phdce.log
+
+test/test_phdce.out: OPT := divex/printflow/peephole_dce/printflow
+test/test_phdce.out: test/test.c
 	java -classpath $(COINS_DIR)/classes coins.driver.Driver \
 		-I$(COINS_DIR)/lang/c/include -I$(COINS_DIR)/lang/c/include/samples \
 		$< -coins:assembler=as,target=x86_64,lir-opt=$(OPT) -o $@

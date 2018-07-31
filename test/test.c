@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int global;
 
 int main() {
@@ -13,6 +15,7 @@ int main() {
     printf("x,y,z = %d, %d, %d\n", x, y, z);
     z = x + 3;
     x = 3 * 10;
+    y = y * 3;
     y = x + 3;
     printf("x,y,z = %d, %d, %d\n", x, y, z);
     global = x + 5;

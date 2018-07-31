@@ -335,6 +335,7 @@ public static final String
   "printflow", // PrintFlow
   "peephole", // peep-hole
   "peephole_cse", // peephole_cse
+  "peephole_dce",
   "constant_folding", // ConstantFolding
   "av",
   "av_cse", // av_cse
