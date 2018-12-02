@@ -1,0 +1,66 @@
+-> [2]
+-> [3]
+[1]:
+(PROLOGUE (0 0))
+(SET I32 (REG I32 "x.1%") (INTCONST I32 1))
+(SET I32 (REG I32 "y.2%") (ADD I32 (REG I32 "x.1%") (INTCONST I32 3)))
+(SET I32 (REG I32 "z.3%") (ADD I32 (REG I32 "x.1%") (INTCONST I32 3)))
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.10") (REG I32 "x.1%") (REG I32 "y.2%") (REG I32 "z.3%")) ((REG I32 "functionvalue.9%")))
+(SET I32 (REG I32 "y.2%") (INTCONST I32 5))
+(SET I32 (REG I32 "y.2%") (ADD I32 (REG I32 "y.2%") (INTCONST I32 3)))
+(SET I32 (REG I32 "z.3%") (ADD I32 (REG I32 "y.2%") (INTCONST I32 3)))
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.10") (REG I32 "x.1%") (REG I32 "y.2%") (REG I32 "z.3%")) ((REG I32 "functionvalue.11%")))
+(SET I32 (REG I32 "z.3%") (ADD I32 (REG I32 "x.1%") (INTCONST I32 3)))
+(SET I32 (REG I32 "x.1%") (MUL I32 (INTCONST I32 3) (INTCONST I32 10)))
+(SET I32 (REG I32 "y.2%") (MUL I32 (REG I32 "y.2%") (INTCONST I32 3)))
+(SET I32 (REG I32 "y.2%") (ADD I32 (REG I32 "x.1%") (INTCONST I32 3)))
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.10") (REG I32 "x.1%") (REG I32 "y.2%") (REG I32 "z.3%")) ((REG I32 "functionvalue.12%")))
+(SET I32 (REG I32 "_divexI32_0") (ADD I32 (REG I32 "x.1%") (INTCONST I32 5)))
+(SET I32 (MEM I32 (STATIC I64 "global")) (REG I32 "_divexI32_0"))
+(SET I32 (REG I32 "_divexI32_1") (ADD I32 (REG I32 "x.1%") (INTCONST I32 5)))
+(SET I64 (REG I64 "_divexI64_0") (CONVSX I64 (INTCONST I32 0)))
+(SET I64 (REG I64 "_divexI64_1") (MUL I64 (REG I64 "_divexI64_0") (INTCONST I64 4)))
+(SET I64 (REG I64 "_divexI64_2") (ADD I64 (FRAME I64 "array.7") (REG I64 "_divexI64_1")))
+(SET I32 (MEM I32 (REG I64 "_divexI64_2")) (REG I32 "_divexI32_1"))
+(SET I32 (REG I32 "i.4%") (INTCONST I32 10))
+(SET I32 (REG I32 "j.5%") (MUL I32 (REG I32 "i.4%") (REG I32 "x.1%")))
+(SET I32 (REG I32 "k.6%") (ADD I32 (REG I32 "j.5%") (REG I32 "z.3%")))
+(SET I32 (REG I32 "_divexI32_2") (MEM I32 (STATIC I64 "global")))
+(SET I64 (REG I64 "_divexI64_3") (CONVSX I64 (INTCONST I32 0)))
+(SET I64 (REG I64 "_divexI64_4") (MUL I64 (REG I64 "_divexI64_3") (INTCONST I64 4)))
+(SET I64 (REG I64 "_divexI64_5") (ADD I64 (FRAME I64 "array.7") (REG I64 "_divexI64_4")))
+(SET I32 (REG I32 "_divexI32_3") (MEM I32 (REG I64 "_divexI64_5")))
+(JUMPC (TSTGTS I32 (REG I32 "_divexI32_2") (REG I32 "_divexI32_3")) (LABEL I64 ".L3") (LABEL I64 ".L4"))
+
+[1] ->
+-> [4]
+[2]:
+(SET I32 (REG I32 "_divexI32_4") (MEM I32 (STATIC I64 "global")))
+(SET I64 (REG I64 "_divexI64_6") (CONVSX I64 (INTCONST I32 0)))
+(SET I64 (REG I64 "_divexI64_7") (MUL I64 (REG I64 "_divexI64_6") (INTCONST I64 4)))
+(SET I64 (REG I64 "_divexI64_8") (ADD I64 (FRAME I64 "array.7") (REG I64 "_divexI64_7")))
+(SET I32 (REG I32 "_divexI32_5") (MEM I32 (REG I64 "_divexI64_8")))
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.14") (REG I32 "_divexI32_4") (REG I32 "_divexI32_5")) ((REG I32 "functionvalue.13%")))
+(JUMP (LABEL I64 ".L5"))
+
+[1] ->
+-> [4]
+[3]:
+(SET I32 (REG I32 "_divexI32_6") (MEM I32 (STATIC I64 "global")))
+(SET I64 (REG I64 "_divexI64_9") (CONVSX I64 (INTCONST I32 0)))
+(SET I64 (REG I64 "_divexI64_10") (MUL I64 (REG I64 "_divexI64_9") (INTCONST I64 4)))
+(SET I64 (REG I64 "_divexI64_11") (ADD I64 (FRAME I64 "array.7") (REG I64 "_divexI64_10")))
+(SET I32 (REG I32 "_divexI32_7") (MEM I32 (REG I64 "_divexI64_11")))
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.16") (REG I32 "_divexI32_6") (REG I32 "_divexI32_7")) ((REG I32 "functionvalue.15%")))
+(JUMP (LABEL I64 ".L5"))
+
+[2] ->
+[3] ->
+-> [5]
+[4]:
+(SET I32 (REG I32 "returnvalue.8%") (INTCONST I32 0))
+(JUMP (LABEL I64 ".L6"))
+
+[4] ->
+[5]:
+(EPILOGUE (0 0) (REG I32 "returnvalue.8%"))

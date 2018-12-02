@@ -1,0 +1,46 @@
+-> [2]
+-> [3]
+[1]:
+(PROLOGUE (0 0))
+(SET I32 (REG I32 "x.1%") (INTCONST I32 1))
+(SET I32 (REG I32 "y.2%") (ADD I32 (REG I32 "x.1%") (INTCONST I32 3)))
+(SET I32 (REG I32 "z.3%") (ADD I32 (REG I32 "x.1%") (INTCONST I32 3)))
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.10") (REG I32 "x.1%") (REG I32 "y.2%") (REG I32 "z.3%")) ((REG I32 "functionvalue.9%")))
+(SET I32 (REG I32 "y.2%") (INTCONST I32 5))
+(SET I32 (REG I32 "y.2%") (ADD I32 (REG I32 "y.2%") (INTCONST I32 3)))
+(SET I32 (REG I32 "z.3%") (ADD I32 (REG I32 "y.2%") (INTCONST I32 3)))
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.10") (REG I32 "x.1%") (REG I32 "y.2%") (REG I32 "z.3%")) ((REG I32 "functionvalue.11%")))
+(SET I32 (REG I32 "z.3%") (ADD I32 (REG I32 "x.1%") (INTCONST I32 3)))
+(SET I32 (REG I32 "x.1%") (MUL I32 (INTCONST I32 3) (INTCONST I32 10)))
+(SET I32 (REG I32 "y.2%") (MUL I32 (REG I32 "y.2%") (INTCONST I32 3)))
+(SET I32 (REG I32 "y.2%") (ADD I32 (REG I32 "x.1%") (INTCONST I32 3)))
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.10") (REG I32 "x.1%") (REG I32 "y.2%") (REG I32 "z.3%")) ((REG I32 "functionvalue.12%")))
+(SET I32 (MEM I32 (STATIC I64 "global")) (ADD I32 (REG I32 "x.1%") (INTCONST I32 5)))
+(SET I32 (MEM I32 (ADD I64 (FRAME I64 "array.7") (MUL I64 (CONVSX I64 (INTCONST I32 0)) (INTCONST I64 4)))) (ADD I32 (REG I32 "x.1%") (INTCONST I32 5)))
+(SET I32 (REG I32 "i.4%") (INTCONST I32 10))
+(SET I32 (REG I32 "j.5%") (MUL I32 (REG I32 "i.4%") (REG I32 "x.1%")))
+(SET I32 (REG I32 "k.6%") (ADD I32 (REG I32 "j.5%") (REG I32 "z.3%")))
+(JUMPC (TSTGTS I32 (MEM I32 (STATIC I64 "global")) (MEM I32 (ADD I64 (FRAME I64 "array.7") (MUL I64 (CONVSX I64 (INTCONST I32 0)) (INTCONST I64 4))))) (LABEL I64 ".L3") (LABEL I64 ".L4"))
+
+[1] ->
+-> [4]
+[2]:
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.14") (MEM I32 (STATIC I64 "global")) (MEM I32 (ADD I64 (FRAME I64 "array.7") (MUL I64 (CONVSX I64 (INTCONST I32 0)) (INTCONST I64 4))))) ((REG I32 "functionvalue.13%")))
+(JUMP (LABEL I64 ".L5"))
+
+[1] ->
+-> [4]
+[3]:
+(CALL (STATIC I64 "printf") ((STATIC I64 "string.16") (MEM I32 (STATIC I64 "global")) (MEM I32 (ADD I64 (FRAME I64 "array.7") (MUL I64 (CONVSX I64 (INTCONST I32 0)) (INTCONST I64 4))))) ((REG I32 "functionvalue.15%")))
+(JUMP (LABEL I64 ".L5"))
+
+[2] ->
+[3] ->
+-> [5]
+[4]:
+(SET I32 (REG I32 "returnvalue.8%") (INTCONST I32 0))
+(JUMP (LABEL I64 ".L6"))
+
+[4] ->
+[5]:
+(EPILOGUE (0 0) (REG I32 "returnvalue.8%"))
